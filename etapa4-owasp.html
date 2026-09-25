@@ -3,11 +3,28 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Etapa 4 · OWASP &amp; Riscos — VIN Share</title>
+<meta name="description" content="Etapa 4 — OWASP Top 10, API, Mobile e ASVS, matriz de riscos, STRIDE, LGPD e plano de mitigação do VIN Share.">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0c0f14">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VIN Share · SecOps">
+<meta property="og:title" content="Etapa 4 · OWASP &amp; Riscos — VIN Share">
+<meta property="og:description" content="Etapa 4 — OWASP Top 10, API, Mobile e ASVS, matriz de riscos, STRIDE, LGPD e plano de mitigação do VIN Share.">
+<meta property="og:url" content="https://vinshare-sprint3-cybersecurity.vercel.app/etapa4-owasp.html">
+<meta property="og:image" content="https://vinshare-sprint3-cybersecurity.vercel.app/assets/img/og-vinshare.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Grade dianteira de uma picape Ford com o título VIN Share · SecOps">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Etapa 4 · OWASP &amp; Riscos — VIN Share">
+<meta name="twitter:description" content="Etapa 4 — OWASP Top 10, API, Mobile e ASVS, matriz de riscos, STRIDE, LGPD e plano de mitigação do VIN Share.">
+<meta name="twitter:image" content="https://vinshare-sprint3-cybersecurity.vercel.app/assets/img/og-vinshare.jpg">
+<link rel="expect" href="#vt-ready" blocking="render">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
+<body data-toc>
 <main>
   <header class="hero">
     <span class="num" aria-hidden="true">04</span>
@@ -15,6 +32,19 @@
     <h1>Pesquisa de Vulnerabilidades: OWASP</h1>
     <p class="lead">OWASP Top 10, API, Mobile e ASVS aplicados ao VIN Share, com matriz de riscos, STRIDE, LGPD e plano de mitigação.</p>
   </header>
+
+  <section class="deliver" aria-labelledby="deliver-t">
+    <p class="eyebrow" id="deliver-t">Entrega esperada (conforme o professor)</p>
+    <ul>
+      <li><a href="#pesquisa"><span class="ck" aria-hidden="true">✓</span>Pesquisa OWASP Top 10, API, Mobile e ASVS</a></li>
+      <li><a href="#matriz"><span class="ck" aria-hidden="true">✓</span>Matriz de mapeamento</a></li>
+      <li><a href="#stride"><span class="ck" aria-hidden="true">✓</span>Revisão STRIDE (modelagem de ameaças)</a></li>
+      <li><a href="#lgpd"><span class="ck" aria-hidden="true">✓</span>Mapeamento LGPD (dados, base legal, controles)</a></li>
+      <li><a href="#plano"><span class="ck" aria-hidden="true">✓</span>Análise de riscos e plano de mitigação</a></li>
+      <li><a href="#continua"><span class="ck" aria-hidden="true">✓</span>Plano de segurança contínua (SCA, testes, auditoria RBAC, backup)</a></li>
+    </ul>
+  </section>
+
 
   <h2 id="pesquisa">Pesquisa: as quatro referências</h2>
   <p>As quatro referências, cada uma aplicada ao VIN Share. Tabelas detalhadas recolhidas; a síntese está na matriz abaixo.</p>
@@ -185,7 +215,8 @@
     <tr><td><b>Revisão de conformidade</b></td><td>Revalidação da matriz OWASP/ASVS, migração para Top 10 2025 e ASVS 5.0, e revisão LGPD (inventário de PII, retenção)</td><td>Anual + a cada release maior</td><td>Segurança + DPO</td><td>Matriz atualizada</td></tr>
   </table></div>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script src="assets/js/main.js"></script>
+<div id="vt-ready" hidden></div>
 </body>
 </html>

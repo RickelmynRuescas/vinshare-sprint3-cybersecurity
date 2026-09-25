@@ -3,11 +3,28 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Etapa 3 · Logs &amp; Incidentes — VIN Share</title>
+<meta name="description" content="Etapa 3 — Logs estruturados, stack ELK, regras de alerta e resposta a incidentes (SANS PICERL) no VIN Share.">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0c0f14">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VIN Share · SecOps">
+<meta property="og:title" content="Etapa 3 · Logs &amp; Incidentes — VIN Share">
+<meta property="og:description" content="Etapa 3 — Logs estruturados, stack ELK, regras de alerta e resposta a incidentes (SANS PICERL) no VIN Share.">
+<meta property="og:url" content="https://vinshare-sprint3-cybersecurity.vercel.app/etapa3-logs-incidentes.html">
+<meta property="og:image" content="https://vinshare-sprint3-cybersecurity.vercel.app/assets/img/og-vinshare.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Grade dianteira de uma picape Ford com o título VIN Share · SecOps">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Etapa 3 · Logs &amp; Incidentes — VIN Share">
+<meta name="twitter:description" content="Etapa 3 — Logs estruturados, stack ELK, regras de alerta e resposta a incidentes (SANS PICERL) no VIN Share.">
+<meta name="twitter:image" content="https://vinshare-sprint3-cybersecurity.vercel.app/assets/img/og-vinshare.jpg">
+<link rel="expect" href="#vt-ready" blocking="render">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
+<body data-toc>
 <main>
   <header class="hero">
     <span class="num" aria-hidden="true">03</span>
@@ -15,6 +32,16 @@
     <h1>Logs, Alertas e Resposta a Incidentes</h1>
     <p class="lead">O que cada componente registra (API, app Ford, IoT, ML), como os logs viram alertas na stack ELK e como o time responde seguindo o <b>SANS PICERL</b>.</p>
   </header>
+
+  <section class="deliver" aria-labelledby="deliver-t">
+    <p class="eyebrow" id="deliver-t">Entrega esperada (conforme o professor)</p>
+    <ul>
+      <li><a href="#logs"><span class="ck" aria-hidden="true">✓</span>Exemplos de logs estruturados</a></li>
+      <li><a href="#alertas"><span class="ck" aria-hidden="true">✓</span>Regras e gatilhos de alertas (API, mobile, IoT, ML)</a></li>
+      <li><a href="#picerl"><span class="ck" aria-hidden="true">✓</span>Fluxo de resposta a incidentes (PICERL)</a></li>
+    </ul>
+  </section>
+
 
   <h2 id="plano">Plano de monitoramento</h2>
   <div class="tbl"><table>
@@ -248,7 +275,8 @@ flowchart LR
     <div class="step"><span class="t">06:10 · RECUPERAÇÃO</span><br>Device legítimo reconectado. Os 214 pontos falsos são removidos do Behavior Hub e o Health Score do veículo é recalculado e validado. O monitoramento reforçado segue por 7 dias e o incidente é encerrado sem impacto a clientes.</div>
   </div>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script src="assets/js/main.js"></script>
+<div id="vt-ready" hidden></div>
 </body>
 </html>

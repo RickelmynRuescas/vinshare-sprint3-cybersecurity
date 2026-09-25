@@ -14,9 +14,18 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const nav = document.createElement('header');
   nav.className = 'nav';
   nav.innerHTML = `<div class="nav-in"><a class="brand" href="index.html">VIN Share <span>· SecOps</span></a><ul>${
-    pages.map((p, i) => `<li><a href="${p[0]}"${i === cur ? ' class="active"' : ''}>${p[1]}</a></li>`).join('')}</ul></div>`;
+    pages.map((p, i) => i === cur
+      ? `<li><a href="${p[0]}" class="active" aria-current="page">${p[1]}<span class="ind" aria-hidden="true"></span></a></li>`
+      : `<li><a href="${p[0]}">${p[1]}</a></li>`).join('')}</ul></div>`;
   nav.insertAdjacentHTML('beforeend', '<div class="progress"></div>');
   document.body.prepend(nav);
+  // altura real da navbar (usada pelo índice sticky e pelo scroll-margin das âncoras)
+  const setNavH = () => document.documentElement.style.setProperty('--navh', nav.offsetHeight + 'px');
+  setNavH();
+  addEventListener('resize', setNavH);
+  // mobile: navbar em uma linha com rolagem; mantém o item ativo visível
+  const navUl = nav.querySelector('ul'), navAct = nav.querySelector('a.active');
+  if (navAct && navUl.scrollWidth > navUl.clientWidth) navUl.scrollLeft = navAct.parentElement.offsetLeft - (navUl.clientWidth - navAct.offsetWidth) / 2;
 
   const main = document.querySelector('main');
   if (cur >= 0 && main) {
@@ -54,8 +63,59 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 })();
 
-// Mermaid: renderiza depois das fontes carregarem (evita texto cortado nos nós)
-if (window.mermaid) {
+// Índice da página (etapas): lateral sticky no desktop, faixa de atalhos no mobile
+(function () {
+  const main = document.querySelector('main');
+  const hero = main && main.querySelector(':scope > .hero');
+  const heads = main ? [...main.querySelectorAll('h2[id]')] : [];
+  if (!hero || !document.body.hasAttribute('data-toc') || heads.length < 3) return;
+  const content = document.createElement('div');
+  content.className = 'content';
+  while (hero.nextSibling) content.append(hero.nextSibling);
+  const toc = document.createElement('nav');
+  toc.className = 'toc';
+  toc.setAttribute('aria-label', 'Nesta página');
+  toc.innerHTML = '<p class="toc-t">Nesta página</p><ol>' + heads.map((h, i) =>
+    `<li><a href="#${h.id}"><span>${String(i + 1).padStart(2, '0')}</span>${h.textContent.trim()}</a></li>`).join('') + '</ol>';
+  main.classList.add('has-toc');
+  main.append(toc, content);
+  const links = new Map([...toc.querySelectorAll('a')].map(a => [a.getAttribute('href').slice(1), a]));
+  const ol = toc.querySelector('ol');
+  const setActive = id => {
+    const a = links.get(id);
+    if (!a || a.classList.contains('on')) return;
+    toc.querySelectorAll('a.on').forEach(x => { x.classList.remove('on'); x.removeAttribute('aria-current'); });
+    a.classList.add('on');
+    a.setAttribute('aria-current', 'location');
+    // mobile (faixa horizontal): rola só a faixa, nunca a página
+    if (ol.scrollWidth > ol.clientWidth) ol.scrollTo({ left: a.parentElement.offsetLeft - 16, behavior: REDUCED ? 'auto' : 'smooth' });
+  };
+  const io = new IntersectionObserver(es => {
+    const vis = es.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+    if (vis.length) setActive(vis[0].target.id);
+  }, { rootMargin: '-80px 0px -65% 0px' });
+  heads.forEach(h => io.observe(h));
+  setActive(heads[0].id);
+})();
+
+// Botão "voltar ao topo"
+(function () {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'totop';
+  b.setAttribute('aria-label', 'Voltar ao topo');
+  b.textContent = '↑';
+  b.onclick = () => scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
+  document.body.append(b);
+  const upd = () => b.classList.toggle('on', scrollY > 700);
+  addEventListener('scroll', upd, { passive: true });
+  upd();
+})();
+
+// Mermaid: renderiza depois das fontes carregarem (evita texto cortado nos nós).
+// O script do Mermaid é "defer": se ainda não chegou, espera o DOMContentLoaded.
+function initMermaid() {
+  if (!window.mermaid) return;
   mermaid.initialize({
     startOnLoad: false, theme: 'base', securityLevel: 'strict', deterministicIds: true,
     themeVariables: {
@@ -68,6 +128,7 @@ if (window.mermaid) {
   });
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => mermaid.run({ querySelector: '.mermaid' }));
 }
+if (window.mermaid) initMermaid(); else document.addEventListener('DOMContentLoaded', initMermaid, { once: true });
 
 // Código longo (> 22 linhas): um único <pre> com o final oculto + botão na base do bloco
 document.querySelectorAll('pre.code').forEach(pre => {
@@ -105,12 +166,13 @@ document.querySelectorAll('pre[data-type]').forEach(pre => {
   if (REDUCED) return;   // sem animação: conteúdo aparece completo
   const lines = pre.innerHTML.split('\n');
   const speed = +pre.dataset.type || 90;
+  pre._full = pre.innerHTML;
   pre.innerHTML = '';
   pre.classList.add('cursor');
   onVisible(pre, () => {
     let i = 0;
     const tick = () => {
-      if (i >= lines.length) { pre.classList.remove('cursor'); return; }
+      if (pre._done || i >= lines.length) { pre.classList.remove('cursor'); return; }
       pre.innerHTML += (i ? '\n' : '') + lines[i++];
       pre.scrollTop = pre.scrollHeight;
       setTimeout(tick, lines[i - 1].startsWith('$') ? speed * 5 : speed);
@@ -267,4 +329,17 @@ document.querySelectorAll('.tl').forEach(tl => {
   };
   ['click', 'keydown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, end, { capture: true, passive: true }));
   setTimeout(end, total);
+})();
+
+// Impressão: abre <details>, completa terminais; restaura depois
+(function () {
+  let opened = [];
+  addEventListener('beforeprint', () => {
+    opened = [...document.querySelectorAll('details:not([open])')];
+    opened.forEach(d => d.open = true);
+    document.querySelectorAll('pre[data-type]').forEach(p => {
+      if (p._full) { p._done = true; p.innerHTML = p._full; p.classList.remove('cursor'); }
+    });
+  });
+  addEventListener('afterprint', () => { opened.forEach(d => d.open = false); opened = []; });
 })();

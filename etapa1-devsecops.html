@@ -3,11 +3,28 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Etapa 1 · Pipeline DevSecOps — VIN Share</title>
+<meta name="description" content="Etapa 1 — Pipeline DevSecOps: SAST com Semgrep, secret scanning com Trufflehog, CI/CD e pesquisa de SCA/Container Security no VIN Share.">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0c0f14">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VIN Share · SecOps">
+<meta property="og:title" content="Etapa 1 · Pipeline DevSecOps — VIN Share">
+<meta property="og:description" content="Etapa 1 — Pipeline DevSecOps: SAST com Semgrep, secret scanning com Trufflehog, CI/CD e pesquisa de SCA/Container Security no VIN Share.">
+<meta property="og:url" content="https://vinshare-sprint3-cybersecurity.vercel.app/etapa1-devsecops.html">
+<meta property="og:image" content="https://vinshare-sprint3-cybersecurity.vercel.app/assets/img/og-vinshare.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Grade dianteira de uma picape Ford com o título VIN Share · SecOps">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Etapa 1 · Pipeline DevSecOps — VIN Share">
+<meta name="twitter:description" content="Etapa 1 — Pipeline DevSecOps: SAST com Semgrep, secret scanning com Trufflehog, CI/CD e pesquisa de SCA/Container Security no VIN Share.">
+<meta name="twitter:image" content="https://vinshare-sprint3-cybersecurity.vercel.app/assets/img/og-vinshare.jpg">
+<link rel="expect" href="#vt-ready" blocking="render">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
+<body data-toc>
 <main>
   <header class="hero">
     <span class="num" aria-hidden="true">01</span>
@@ -15,6 +32,17 @@
     <h1>Pipeline DevSecOps &amp; Análise de Código</h1>
     <p class="lead">Todo código do VIN Share passa por <b>Semgrep</b> (SAST) e <b>Trufflehog</b> (segredos), no pre-commit e no GitHub Actions, antes de chegar em produção.</p>
   </header>
+
+  <section class="deliver" aria-labelledby="deliver-t">
+    <p class="eyebrow" id="deliver-t">Entrega esperada (conforme o professor)</p>
+    <ul>
+      <li><a href="#semgrep"><span class="ck" aria-hidden="true">✓</span>Varreduras SAST com Semgrep e regras aplicadas</a></li>
+      <li><a href="#trufflehog"><span class="ck" aria-hidden="true">✓</span>Secret scanning com Trufflehog</a></li>
+      <li><a href="#cicd"><span class="ck" aria-hidden="true">✓</span>Diagrama CI/CD com pontos de execução</a></li>
+      <li><a href="#sca"><span class="ck" aria-hidden="true">✓</span>Pesquisa SCA e Container Security</a></li>
+    </ul>
+  </section>
+
 
   <h2 id="ssdlc">SDLC × SSDLC: shift-left</h2>
   <p>No SDLC tradicional a segurança chega no fim (pentest pré-go-live). No <b>SSDLC</b> ela é empurrada para a esquerda (<i>shift-left</i>) e automatizada em cada fase.</p>
@@ -433,7 +461,8 @@ Total: 2 (HIGH: 2, CRITICAL: 0)</pre>
     <tr><td>Container Security</td><td>Imagens Docker e runtime</td><td>pós-build, pré-registry</td><td><span class="tag med">pesquisado</span></td></tr>
   </table></div>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script src="assets/js/main.js"></script>
+<div id="vt-ready" hidden></div>
 </body>
 </html>

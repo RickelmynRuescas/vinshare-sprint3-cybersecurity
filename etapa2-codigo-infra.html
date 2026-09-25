@@ -3,11 +3,28 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Etapa 2 · Código &amp; Infraestrutura — VIN Share</title>
+<meta name="description" content="Etapa 2 — Segurança em código e infraestrutura: criptografia, hardening de API, JWT, RBAC, MQTT/TLS para IoT e IaC no VIN Share.">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0c0f14">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VIN Share · SecOps">
+<meta property="og:title" content="Etapa 2 · Código &amp; Infraestrutura — VIN Share">
+<meta property="og:description" content="Etapa 2 — Segurança em código e infraestrutura: criptografia, hardening de API, JWT, RBAC, MQTT/TLS para IoT e IaC no VIN Share.">
+<meta property="og:url" content="https://vinshare-sprint3-cybersecurity.vercel.app/etapa2-codigo-infra.html">
+<meta property="og:image" content="https://vinshare-sprint3-cybersecurity.vercel.app/assets/img/og-vinshare.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Grade dianteira de uma picape Ford com o título VIN Share · SecOps">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Etapa 2 · Código &amp; Infraestrutura — VIN Share">
+<meta name="twitter:description" content="Etapa 2 — Segurança em código e infraestrutura: criptografia, hardening de API, JWT, RBAC, MQTT/TLS para IoT e IaC no VIN Share.">
+<meta name="twitter:image" content="https://vinshare-sprint3-cybersecurity.vercel.app/assets/img/og-vinshare.jpg">
+<link rel="expect" href="#vt-ready" blocking="render">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
+<body data-toc>
 <main>
   <header class="hero">
     <span class="num" aria-hidden="true">02</span>
@@ -15,6 +32,19 @@
     <h1>Segurança em Código e Infraestrutura</h1>
     <p class="lead">Correções na API, nos dados e na infraestrutura do VIN Share, muitas motivadas pelos achados do Semgrep da <a href="etapa1-devsecops.html#semgrep">Etapa 1</a>, com código antes/depois e commits.</p>
   </header>
+
+  <section class="deliver" aria-labelledby="deliver-t">
+    <p class="eyebrow" id="deliver-t">Entrega esperada (conforme o professor)</p>
+    <ul>
+      <li><a href="#cripto"><span class="ck" aria-hidden="true">✓</span>Criptografia local</a></li>
+      <li><a href="#api"><span class="ck" aria-hidden="true">✓</span>Hardening de API: rate limit, validação e JWT</a></li>
+      <li><a href="#rbac"><span class="ck" aria-hidden="true">✓</span>Controle de acesso por perfil (RBAC)</a></li>
+      <li><a href="#commits"><span class="ck" aria-hidden="true">✓</span>Commits e explicações técnicas</a></li>
+      <li><a href="#mqtt"><span class="ck" aria-hidden="true">✓</span>Segurança MQTT/TLS para IoT (fase 3)</a></li>
+      <li><a href="#infra"><span class="ck" aria-hidden="true">✓</span>Infraestrutura como Código (IaC Security)</a></li>
+    </ul>
+  </section>
+
 
   <h2 id="visao">Camadas de defesa da API</h2>
 <pre class="mermaid">
@@ -540,7 +570,8 @@ Date:   Mon Sep 14 10:42:18 2026 -0300
  3 files changed, 112 insertions(+), 13 deletions(-)</pre>
   </div>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script src="assets/js/main.js"></script>
+<div id="vt-ready" hidden></div>
 </body>
 </html>
