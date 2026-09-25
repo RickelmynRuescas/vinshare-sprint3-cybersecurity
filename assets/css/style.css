@@ -24,12 +24,15 @@ header.nav{position:sticky;top:0;z-index:50;background:rgba(12,15,20,.72);-webki
 .brand:hover{text-decoration:none}
 .nav ul{position:relative;display:flex;gap:.2rem;list-style:none;flex-wrap:wrap;margin-left:auto}
 .nav ul a{position:relative;display:block;padding:.35rem .6rem;color:var(--tx2);font:.8rem var(--mono)}
-.nav ul a::after{content:"";position:absolute;left:.6rem;right:.6rem;bottom:.1rem;height:1px;background:var(--acc);transform:scaleX(0);transform-origin:left;transition:transform .35s ease}
 .nav ul a:hover{color:var(--tx);text-decoration:none}
-.nav ul a:hover::after{transform:scaleX(.4)}
 .nav ul a.active{color:var(--tx)}
-.nav ul a.active::after{display:none}
-.nav .ind{position:absolute;left:.6rem;right:.6rem;bottom:.1rem;height:1px;background:var(--acc);view-transition-name:navind}
+.nav ul a{z-index:1}
+.nav ul a.active::before{content:"›";color:var(--acc);margin-right:.4em}
+.nav .pill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:999px;background:rgba(79,140,255,.12);
+  pointer-events:none;z-index:0;opacity:0;view-transition-name:navpill}
+.nav .pill.on{opacity:1}
+.nav .pill.ready{transition:transform .2s cubic-bezier(.2,.7,.2,1),width .2s cubic-bezier(.2,.7,.2,1)}
+@media (prefers-reduced-motion:reduce){.nav .pill.ready{transition:none}}
 .progress{position:absolute;left:0;bottom:-1px;height:2px;width:0;background:var(--acc);transition:width .1s linear}
 
 main{max-width:1180px;margin:auto;padding:3rem 16px 4rem;counter-reset:sec}
@@ -278,7 +281,9 @@ summary:focus-visible,.btn:focus-visible,button:focus-visible{outline:2px solid 
 /* >=1280px: todo <main> ocupa a largura total com o mesmo recuo (mesma caixa em todas as páginas,
    para a transição entre páginas não esticar o bloco) */
 @media (min-width:1280px){
-  main{max-width:none;padding-left:calc((100% - 1180px) / 2 + 16px);padding-right:calc((100% - 1180px) / 2 + 16px)}
+  main{max-width:none;padding-left:calc((100% - 1180px) / 2 + 16px);padding-right:40px}
+  main:not(.has-toc)>:not(.hero){max-width:1148px}
+  .hero .num{right:0}
 }
 /* >=1280px: o texto mantém a largura (890px) e o alinhamento com a navbar; o índice vai
    para a margem direita da tela, com no mínimo 64px de folga */
@@ -317,7 +322,7 @@ main{view-transition-name:main}
 ::view-transition-group(navbar),::view-transition-old(navbar),::view-transition-new(navbar){animation:none}
 ::view-transition-old(main){animation:vt-out .28s cubic-bezier(.4,0,.2,1) both}
 ::view-transition-new(main){animation:vt-in .32s cubic-bezier(.2,.7,.2,1) .04s both}
-::view-transition-group(navind){animation-duration:.35s;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
+::view-transition-group(navpill){animation-duration:.35s;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
 ::view-transition-group(main){animation:none}          /* sem esticar: só o fade/slide do old/new */
 ::view-transition-group(stagenum){animation:none}      /* número só em crossfade */
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.2s}
@@ -359,7 +364,6 @@ main{view-transition-name:main}
   a[href^="http"]::after{content:" (" attr(href) ")";font-size:.8em;color:#555;word-break:break-all}
   footer{border-top:1px solid #ccd2da;color:#555}
 }
-@media (min-width:1280px){main.has-toc .hero .num{right:0}}   /* hero já ocupa até a coluna do índice */
 
 /* index: "O que é" ao lado dos atalhos + integrantes em popover */
 .about{align-items:center;margin-bottom:1.5rem}
