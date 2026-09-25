@@ -388,9 +388,8 @@ header.nav{view-transition-name:navbar}
 .team-pop td{padding:.4rem .9rem .4rem 0;white-space:nowrap}
 .team-pop:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
-/* rodapé com os integrantes */
+/* rodapé */
 footer p{margin:.15rem 0}
-footer .team-list{color:var(--tx2);opacity:.85}
 @media print{.team{display:none}}
 
 

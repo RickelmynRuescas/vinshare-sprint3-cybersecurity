@@ -81,13 +81,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
     main.append(pn);
   }
   const f = document.createElement('footer');
-  const team = [
-    ['Heloísa Fleury Jardim', 'RM556378'], ['Juan Fuentes Rufino', 'RM557673'], ['Rickelmyn de Souza Ruescas', 'RM556055'],
-    ['Paulo Henrique Monteiro Golovanevsky', 'RM555300'], ['Pedro Henrique Silva Batista', 'RM558137'],
-  ];
-  f.innerHTML = '<p>FIAP · Ford Challenge · Sprint 3 — Cybersecurity · Turma 3ESPV</p>' +
-    `<p class="team-list">${team.map(([n, rm]) => `${n} (${rm})`).join(' · ')}</p>` +
-    '<p>Conteúdo técnico ilustrativo (mocado) para fins acadêmicos</p>';
+  f.innerHTML = '<p>FIAP · Ford Challenge · Sprint 3 — Cybersecurity · Turma 3ESPV</p>';
   document.body.append(f);
 
   // barra de progresso de leitura
