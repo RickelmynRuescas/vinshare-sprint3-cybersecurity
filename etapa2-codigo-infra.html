@@ -353,8 +353,9 @@ $ mosquitto_pub ... -t vinshare/telemetry/TCU-00A1C3 -f ponto.json
 <span class="k">RUN</span> pip install --no-cache-dir --require-hashes -r requirements.lock
 <span class="k">COPY</span> --chown=vinshare . .
 <span class="k">USER</span> 10001                          <span class="c"># não-root</span>
-<span class="k">HEALTHCHECK</span> CMD python -c <span class="s">"import httpx;httpx.get('http://localhost:8000/health')"</span>
-<span class="k">CMD</span> [<span class="s">"uvicorn"</span>,<span class="s">"api.main:app"</span>,<span class="s">"--host"</span>,<span class="s">"0.0.0.0"</span>,<span class="s">"--proxy-headers"</span>]</pre></div>
+<span class="k">EXPOSE</span> 8000                         <span class="c"># HTTP interno; TLS termina no gateway</span>
+<span class="k">HEALTHCHECK</span> CMD python -c <span class="s">"import httpx;httpx.get('http://localhost:8000/health').raise_for_status()"</span>
+<span class="k">CMD</span> [<span class="s">"uvicorn"</span>,<span class="s">"api.main:app"</span>,<span class="s">"--host"</span>,<span class="s">"0.0.0.0"</span>,<span class="s">"--port"</span>,<span class="s">"8000"</span>,<span class="s">"--proxy-headers"</span>]</pre></div>
     <div class="card"><h3>Outras medidas</h3>
       <ul>
         <li>Segredos via <b>pydantic-settings</b> (<code>SecretStr</code>) lidos de ambiente/cofre, com <code>.env</code> no <code>.gitignore</code> e um <code>.env.example</code> sem valores.</li>
@@ -377,13 +378,22 @@ $ mosquitto_pub ... -t vinshare/telemetry/TCU-00A1C3 -f ponto.json
     <span class="k">resources:</span> { <span class="k">limits:</span> { <span class="k">cpus:</span> <span class="s">"1.0"</span>, <span class="k">memory:</span> 1g } }
 
 <span class="k">services:</span>
+  <span class="k">gateway:</span>                            <span class="c"># nginx: termina o TLS (config da seção 1.2)</span>
+    &lt;&lt;: *hardening
+    <span class="k">image:</span> nginx:1.27-alpine
+    <span class="k">ports:</span> [<span class="s">"443:8443"</span>]                <span class="c"># único ponto HTTPS exposto</span>
+    <span class="k">networks:</span> [edge, backend]
+    <span class="k">secrets:</span> [tls_cert, tls_key]
+
   <span class="k">api:</span>
     &lt;&lt;: *hardening
     <span class="k">image:</span> ghcr.io/vinshare/api:8c41e2a
-    <span class="k">ports:</span> [<span class="s">"443:8443"</span>]                <span class="c"># único serviço exposto</span>
-    <span class="k">networks:</span> [edge, backend]
+    <span class="k">expose:</span> [<span class="s">"8000"</span>]                   <span class="c"># sem ports: só o gateway alcança</span>
+    <span class="k">networks:</span> [backend]
+    <span class="k">volumes:</span> [sqlite_data:/data]         <span class="c"># única área gravável</span>
     <span class="k">secrets:</span> [jwt_secret, pii_keys, whatsapp_token]
     <span class="k">environment:</span>
+      <span class="k">DATABASE_URL:</span> sqlite:////data/vinshare.db
       <span class="k">JWT_SECRET_FILE:</span> /run/secrets/jwt_secret
       <span class="k">PII_KEYS_FILE:</span> /run/secrets/pii_keys
 
@@ -396,33 +406,23 @@ $ mosquitto_pub ... -t vinshare/telemetry/TCU-00A1C3 -f ponto.json
   <span class="k">iot-ingestor:</span>
     &lt;&lt;: *hardening
     <span class="k">image:</span> ghcr.io/vinshare/iot-ingestor:8c41e2a
-    <span class="k">networks:</span> [iot, backend]
-
-  <span class="k">db:</span>
-    &lt;&lt;: *hardening
-    <span class="k">image:</span> postgres:16-alpine
-    <span class="k">read_only:</span> false                  <span class="c"># precisa gravar em volume</span>
-    <span class="k">volumes:</span> [dbdata:/var/lib/postgresql/data]
-    <span class="k">networks:</span> [data]                   <span class="c"># sem portas publicadas</span>
-    <span class="k">secrets:</span> [db_password]
-    <span class="k">environment:</span>
-      <span class="k">POSTGRES_PASSWORD_FILE:</span> /run/secrets/db_password
+    <span class="k">networks:</span> [iot, backend]           <span class="c"># envia à api; não acessa o SQLite</span>
 
 <span class="k">networks:</span>
   <span class="k">edge:</span> {}
   <span class="k">iot:</span>     { <span class="k">internal:</span> true }
   <span class="k">backend:</span> { <span class="k">internal:</span> true }
-  <span class="k">data:</span>    { <span class="k">internal:</span> true }        <span class="c"># banco isolado</span>
 
 <span class="k">secrets:</span>                             <span class="c"># nunca em ENV literal nem na imagem</span>
   <span class="k">jwt_secret:</span>     { <span class="k">external:</span> true }
   <span class="k">pii_keys:</span>       { <span class="k">external:</span> true }
   <span class="k">whatsapp_token:</span> { <span class="k">external:</span> true }
-  <span class="k">db_password:</span>    { <span class="k">external:</span> true }
+  <span class="k">tls_cert:</span>       { <span class="k">external:</span> true }
+  <span class="k">tls_key:</span>        { <span class="k">external:</span> true }
 
 <span class="k">volumes:</span>
-  <span class="k">dbdata:</span> {}</pre>
-  <p class="muted" style="margin-top:-.4rem">No exemplo, o <code>db</code> está só na rede <code>data</code>. Numa topologia completa os hubs também entrariam nela, e o <code>db</code> seguiria sem acesso a <code>edge</code> nem a <code>iot</code>.</p>
+  <span class="k">sqlite_data:</span> {}                     <span class="c"># banco SQLite (PII cifrada por campo)</span></pre>
+  <p class="muted" style="margin-top:-.4rem">O projeto usa <b>SQLite</b>, então não existe serviço de banco. O arquivo <code>vinshare.db</code> fica no volume nomeado <code>sqlite_data</code>, montado <b>somente na <code>api</code></b> em <code>/data</code>. O container roda com <code>read_only: true</code>, e esse volume é sua única área gravável além do <code>/tmp</code>. Sobre as portas: o TLS termina no <code>gateway</code> (nginx, porta 443), que repassa para o uvicorn na <b>8000</b> pela rede interna <code>backend</code>. Por isso a <code>api</code> não publica nenhuma porta.</p>
 
   <h3>Lint de IaC no pipeline</h3>
   <div class="tbl"><table>
