@@ -216,14 +216,42 @@ document.querySelectorAll('.tl').forEach(tl => {
   if (btn) btn.onclick = play;
 });
 
-// Parallax sutil na foto do hero (index); desligado com reduced-motion
-const heroImg = document.querySelector('.hero-bg img');
-if (heroImg && !REDUCED) {
-  let ticking = false;
-  const move = () => {
-    const y = Math.min(scrollY, 600);
-    heroImg.style.setProperty('--py', (y * 0.02).toFixed(1) + 'px');   // máx. 12px, dentro da margem do scale
-    ticking = false;
+// Intro de abertura: só no index (body[data-intro]) e só na 1ª visita da sessão
+(function () {
+  const html = document.documentElement;
+  if (!document.body.hasAttribute('data-intro') || !html.classList.contains('intro-pending')) return;
+  try { sessionStorage.setItem('vs-intro-seen', '1'); } catch (e) {}
+
+  const total = REDUCED ? 600 : 1550;          // tempo em tela antes do fade-out (máx. ~2s com o fade)
+  const intro = document.createElement('div');
+  intro.className = 'intro';
+  intro.setAttribute('role', 'presentation');
+  intro.style.setProperty('--dur', total + 'ms');
+  intro.innerHTML = `
+    <picture>
+      <source media="(max-width:720px)" srcset="assets/img/hero-ford.webp" type="image/webp">
+      <source media="(max-width:720px)" srcset="assets/img/hero-ford-900.jpg">
+      <source srcset="assets/img/intro-ford-1600.webp" type="image/webp">
+      <img src="assets/img/intro-ford-1600.jpg" width="1600" height="1000" alt="" decoding="async" fetchpriority="high">
+    </picture>
+    <div class="intro-txt"><b>VIN Share <span>·</span> SecOps</b><small>FIAP · Ford Challenge · Sprint 3 — Cybersecurity</small></div>
+    <div class="intro-bar"></div>
+    <button type="button" class="intro-skip">pular ⏎</button>`;
+  document.body.append(intro);
+  html.classList.remove('intro-pending');      // a intro assume a capa preta
+
+  const img = intro.querySelector('img');
+  const show = () => requestAnimationFrame(() => intro.classList.add('show'));
+  if (img.complete) show(); else { img.addEventListener('load', show, { once: true }); img.addEventListener('error', show, { once: true }); setTimeout(show, 400); }
+
+  let done = false;
+  const end = () => {
+    if (done) return;
+    done = true;
+    intro.classList.add('out');
+    ['click', 'keydown', 'wheel', 'touchstart', 'scroll'].forEach(ev => removeEventListener(ev, end, true));
+    setTimeout(() => intro.remove(), REDUCED ? 50 : 500);
   };
-  addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(move); } }, { passive: true });
-}
+  ['click', 'keydown', 'wheel', 'touchstart', 'scroll'].forEach(ev => addEventListener(ev, end, { capture: true, passive: true }));
+  setTimeout(end, total);
+})();

@@ -7,20 +7,25 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/css/style.css">
+<script>
+  // Intro (só index, 1ª visita da sessão): cobre a página até o main.js montar a intro.
+  // Failsafe: se o JS principal falhar, a capa some sozinha e o conteúdo aparece.
+  (function () {
+    try { if (sessionStorage.getItem('vs-intro-seen')) return; } catch (e) {}
+    var h = document.documentElement;
+    h.classList.add('intro-pending');
+    setTimeout(function () { h.classList.remove('intro-pending'); }, 2500);
+  })();
+</script>
 </head>
-<body>
+<body data-intro>
 <main>
-  <section class="top">
-    <picture class="hero-bg">
-      <source srcset="assets/img/hero-ford.webp" type="image/webp">
-      <img src="assets/img/hero-ford-900.jpg" width="900" height="1350" loading="eager" fetchpriority="high" decoding="async"
-           alt="Grade dianteira de uma picape Ford com as letras FORD em relevo, fotografada em ambiente escuro">
-    </picture>
-    <header class="hero">
-      <span class="eyebrow">FIAP · Ford Challenge · Sprint 3 — Cybersecurity</span>
-      <h1>Segurança do VIN Share / Ford Customer 360</h1>
-      <p class="lead">Como a camada de inteligência de retenção pós-venda da Ford é protegida: do pipeline de código à resposta a incidentes.</p>
-    </header>
+  <header class="hero">
+    <span class="num" aria-hidden="true">00</span>
+    <span class="eyebrow">FIAP · Ford Challenge · Sprint 3 — Cybersecurity</span>
+    <h1>Segurança do VIN Share / Ford Customer 360</h1>
+    <p class="lead">Como a camada de inteligência de retenção pós-venda da Ford é protegida: do pipeline de código à resposta a incidentes.</p>
+  </header>
 
   <div class="split">
     <div>
@@ -38,7 +43,6 @@
       </table>
     </div>
   </div>
-  </section>
 
   <div class="note warn"><b>Nota:</b> códigos, saídas de terminal, commits, logs e alertas deste site são <b>exemplos ilustrativos (mocados)</b>, coerentes com a arquitetura do VIN Share, para demonstrar o entendimento dos controles.</div>
 
