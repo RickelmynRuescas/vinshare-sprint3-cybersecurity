@@ -242,13 +242,21 @@ document.querySelectorAll('.tl').forEach(tl => {
   if (img.complete) show(); else { img.addEventListener('load', show, { once: true }); img.addEventListener('error', show, { once: true }); setTimeout(show, 400); }
 
   let done = false;
-  const end = () => {
+  const t0 = performance.now();
+  const end = e => {
     if (done) return;
+    if (e) {
+      // ignora "ruído" do próprio recarregamento: eventos nos primeiros 350ms,
+      // tecla segurada (repeat), F5 e atalhos com Ctrl/Cmd (Ctrl+R)
+      if (performance.now() - t0 < 350) return;
+      if (e.type === 'keydown' && (e.repeat || e.key === 'F5' || e.ctrlKey || e.metaKey ||
+          ['Control', 'Meta', 'Shift', 'Alt'].includes(e.key))) return;
+    }
     done = true;
     intro.classList.add('out');
-    ['click', 'keydown', 'wheel', 'touchstart', 'scroll'].forEach(ev => removeEventListener(ev, end, true));
+    ['click', 'keydown', 'wheel', 'touchstart'].forEach(ev => removeEventListener(ev, end, true));
     setTimeout(() => intro.remove(), REDUCED ? 50 : 500);
   };
-  ['click', 'keydown', 'wheel', 'touchstart', 'scroll'].forEach(ev => addEventListener(ev, end, { capture: true, passive: true }));
+  ['click', 'keydown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, end, { capture: true, passive: true }));
   setTimeout(end, total);
 })();
