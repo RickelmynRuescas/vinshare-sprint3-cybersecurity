@@ -85,20 +85,19 @@ pre.code{background:#080a0e;border:1px solid var(--line);border-radius:var(--r);
 code{font-family:var(--mono);font-size:.86em;background:var(--bg3);padding:.08rem .3rem;border-radius:2px}
 pre code{background:none;padding:0}
 .fn{font:12px var(--mono);color:var(--tx2);background:var(--bg3);border:1px solid var(--line);border-bottom:0;border-radius:var(--r) var(--r) 0 0;padding:.3rem .8rem;margin-top:1rem}
-.fn+pre.code,.fn+.codewrap>pre.code:first-child{border-radius:0 0 var(--r) var(--r);margin-top:0}
+.fn+pre.code{border-radius:0 0 var(--r) var(--r);margin-top:0}
+.fn+.codewrap{margin-top:0}
+.fn+.codewrap>pre.code{border-radius:0}
 .fn.bad{color:var(--crit)}.fn.good{color:var(--ok)}
 .c{color:#6e7781}.k{color:#ff7b72}.s{color:#a5d6ff}.f{color:#d2a8ff}.g{color:var(--ok)}.r{color:var(--crit)}.y{color:var(--warn)}.b{color:var(--info)}
-/* código longo recolhido */
-.codewrap{margin:.4rem 0 1rem}
-.codewrap>pre.code{margin:0}
-.codewrap>pre.code.head{border-bottom-left-radius:0;border-bottom-right-radius:0;-webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent)}
-.codewrap details[open]~pre.code.head,.codewrap.open>pre.code.head{-webkit-mask-image:none;mask-image:none}
-.codewrap details>summary{list-style:none;cursor:pointer;font:12px var(--mono);color:var(--acc);padding:.45rem .8rem;border:1px solid var(--line);border-top:0;background:var(--bg2);border-radius:0 0 var(--r) var(--r)}
-.codewrap details>summary::-webkit-details-marker{display:none}
-.codewrap details>summary::before{content:"+ "}
-.codewrap details[open]>summary{border-radius:0}
-.codewrap details[open]>summary::before{content:"− "}
-.codewrap details>pre.code{border-top:0;border-radius:0 0 var(--r) var(--r);margin:0}
+/* código longo recolhido: um único <pre>, botão na base */
+.codewrap{margin:.4rem 0 1rem;scroll-margin-top:5rem}
+.codewrap>pre.code{margin:0;border-bottom-left-radius:0;border-bottom-right-radius:0}
+.codewrap:not(.open)>pre.code{-webkit-mask-image:linear-gradient(#000 75%,transparent);mask-image:linear-gradient(#000 75%,transparent)}
+.codewrap:not(.open) .more{display:none}
+.code-toggle{display:block;width:100%;text-align:left;cursor:pointer;font:12px var(--mono);color:var(--acc);background:var(--bg2);padding:.45rem .8rem;border:1px solid var(--line);border-top:0;border-radius:0 0 var(--r) var(--r)}
+.code-toggle:hover{color:var(--tx)}
+.code-toggle:focus-visible{outline:1px solid var(--acc);outline-offset:-1px}
 
 /* accordion (Etapa 4) */
 details.acc{border-top:1px solid var(--line)}

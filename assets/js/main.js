@@ -69,7 +69,7 @@ if (window.mermaid) {
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => mermaid.run({ querySelector: '.mermaid' }));
 }
 
-// Código longo (> 22 linhas): mostra o início e recolhe o resto em <details>
+// Código longo (> 22 linhas): um único <pre> com o final oculto + botão na base do bloco
 document.querySelectorAll('pre.code').forEach(pre => {
   const lines = pre.innerHTML.replace(/\n$/, '').split('\n');
   if (lines.length <= 22) return;
@@ -77,12 +77,21 @@ document.querySelectorAll('pre.code').forEach(pre => {
   const wrap = document.createElement('div');
   wrap.className = 'codewrap';
   pre.before(wrap);
-  pre.innerHTML = lines.slice(0, keep).join('\n');
-  pre.classList.add('head');
-  const det = document.createElement('details');
-  det.innerHTML = `<summary>ver código completo (${lines.length} linhas)</summary><pre class="code">${lines.slice(keep).join('\n')}</pre>`;
-  det.addEventListener('toggle', () => wrap.classList.toggle('open', det.open));
-  wrap.append(pre, det);
+  pre.innerHTML = lines.slice(0, keep).join('\n') + `<span class="more">\n${lines.slice(keep).join('\n')}</span>`;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'code-toggle';
+  btn.setAttribute('aria-expanded', 'false');
+  const label = () => btn.textContent = wrap.classList.contains('open') ? '− recolher código' : `+ ver código completo (${lines.length} linhas)`;
+  btn.onclick = () => {
+    const open = wrap.classList.toggle('open');
+    btn.setAttribute('aria-expanded', open);
+    label();
+    // ao recolher, volta ao topo do bloco se ele saiu da tela
+    if (!open && wrap.getBoundingClientRect().top < 0) wrap.scrollIntoView({ block: 'start', behavior: 'instant' });
+  };
+  label();
+  wrap.append(pre, btn);
 });
 
 // Executa fn quando o elemento entra na tela (uma vez)
