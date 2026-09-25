@@ -199,9 +199,9 @@ html.intro-pending::after{content:"";position:fixed;inset:0;background:#000;z-in
 .intro{position:fixed;inset:0;z-index:1000;background:#000;overflow:hidden;cursor:pointer;transition:opacity .45s ease}
 .intro.out{opacity:0;pointer-events:none}
 /* foto inteira (vertical), menor, à direita do centro, bordas dissolvidas no preto */
-.intro picture{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:0 0 0 30vw;pointer-events:none}
-.intro img{display:block;width:auto;height:min(90vh,calc(60vw * 1.5));max-width:60vw;aspect-ratio:900/1350;object-fit:contain;
-  -webkit-mask-image:radial-gradient(closest-side,#000 30%,rgba(0,0,0,.55) 62%,rgba(0,0,0,.15) 84%,transparent 100%);mask-image:radial-gradient(closest-side,#000 30%,rgba(0,0,0,.55) 62%,rgba(0,0,0,.15) 84%,transparent 100%);
+.intro picture{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;justify-content:flex-end;padding:0;pointer-events:none}
+.intro img{display:block;width:auto;height:100vh;max-width:66.7vh;aspect-ratio:900/1350;object-fit:contain;
+  -webkit-mask-image:linear-gradient(to right,transparent 0,#000 45%),linear-gradient(to bottom,transparent 0,#000 12%,#000 82%,transparent 100%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent 0,#000 45%),linear-gradient(to bottom,transparent 0,#000 12%,#000 82%,transparent 100%);mask-composite:intersect;transform-origin:right center;
   opacity:0;transform:scale(1.03);filter:brightness(1.12) contrast(1.08);transition:opacity .7s ease,transform 2.2s cubic-bezier(.2,.6,.2,1)}
 .intro.show img{opacity:1;transform:scale(1)}
 .intro::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
@@ -223,6 +223,7 @@ html.intro-pending::after{content:"";position:fixed;inset:0;background:#000;z-in
   .intro{transition:opacity .25s ease}
 }
 @media (max-width:720px){
-  .intro picture{padding:0 0 18vh;align-items:center}
-  .intro img{height:min(72vh,calc(96vw * 1.5));max-width:96vw}
+  .intro picture{justify-content:center;padding:0 0 18vh;align-items:center}
+  .intro img{height:min(72vh,calc(96vw * 1.5));max-width:96vw;transform-origin:center;
+    -webkit-mask-image:radial-gradient(closest-side,#000 30%,rgba(0,0,0,.55) 62%,rgba(0,0,0,.15) 84%,transparent 100%);mask-image:radial-gradient(closest-side,#000 30%,rgba(0,0,0,.55) 62%,rgba(0,0,0,.15) 84%,transparent 100%)}
 }
