@@ -23,8 +23,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/css/style.css">
+<script>
+  // Intro: aparece ao abrir o site e em todo F5 (em qualquer página); não aparece ao voltar
+  // de uma etapa (link interno ou botão voltar). Cobre a página até o main.js montar a intro.
+  // Failsafe: se o JS principal falhar, a capa some sozinha e o conteúdo aparece.
+  (function () {
+    var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
+    var reload = nav.type === 'reload';
+    var fromSite = false;
+    try { fromSite = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
+    if (!reload && (nav.type === 'back_forward' || fromSite)) return;
+    var h = document.documentElement;
+    h.classList.add('intro-pending');
+    setTimeout(function () { h.classList.remove('intro-pending'); }, 2500);
+  })();
+</script>
 </head>
-<body data-toc>
+<body data-toc data-intro>
 <main>
   <header class="hero">
     <span class="num" aria-hidden="true">03</span>

@@ -329,7 +329,7 @@ document.querySelectorAll('.tl').forEach(tl => {
   if (btn) btn.onclick = play;
 });
 
-// Intro de abertura: só no index (body[data-intro]); o script do <head> decide quando mostrar
+// Intro de abertura (páginas com body[data-intro]); o script do <head> decide quando mostrar
 (function () {
   const html = document.documentElement;
   if (!document.body.hasAttribute('data-intro') || !html.classList.contains('intro-pending')) return;
