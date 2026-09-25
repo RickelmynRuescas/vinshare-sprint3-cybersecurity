@@ -1,4 +1,5 @@
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const WALK_STEP = 160;   // ms por item: sublinhado da navbar e contagem do número grande
 
 // Nav + footer compartilhados
 (function () {
@@ -46,6 +47,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
   from = from === null ? null : +from;
   const walk = from !== null && !REDUCED && cur >= 0 && from !== cur && links[from];
   let walking = !!walk;                            // enquanto caminha, o resize não reposiciona
+  window.__vsWalk = walk ? { from, cur } : null;  // o número grande conta junto com o sublinhado
   if (!navAct) ind.hidden = true;
   else place(walk ? links[from] : navAct);           // antes do 1º render: já no ponto de partida
   if (!walk) keepActiveVisible(false);
@@ -53,7 +55,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!navAct) return;
     if (!walk) { place(navAct); return; }
     place(links[from]);
-    const dir = cur > from ? 1 : -1, steps = Math.abs(cur - from), dur = Math.min(120, 600 / steps);
+    const dir = cur > from ? 1 : -1, dur = WALK_STEP;
     ind.style.setProperty('--step', dur + 'ms');
     ind.getBoundingClientRect();                     // aplica a posição inicial antes de ligar a transição
     ind.classList.add('walk');
@@ -61,6 +63,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const step = () => {
       i += dir;
       place(links[i]);
+      document.dispatchEvent(new CustomEvent('vs:navstep', { detail: { i, dir, dur } }));
       if (i !== cur) setTimeout(step, dur);
       else setTimeout(() => { ind.classList.remove('walk'); walking = false; keepActiveVisible(true); }, dur);
     };
@@ -422,4 +425,32 @@ document.querySelectorAll('.tl').forEach(tl => {
   fit();
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(fit);
   addEventListener('resize', fit);
+})();
+
+// Número grande: na troca de página conta do número anterior até o atual, junto com o sublinhado
+(function () {
+  const n = document.querySelector('.hero .num');
+  if (!n) return;
+  const pad = v => String(v).padStart(2, '0');
+  const final = n.textContent.trim();
+  const w = window.__vsWalk;
+  n.innerHTML = `<span class="d">${w ? pad(w.from) : final}</span>`;
+  if (!w) return;
+  const ease = 'cubic-bezier(.2,.7,.2,1)';
+  document.addEventListener('vs:navstep', e => {
+    const { i, dir, dur } = e.detail;
+    const old = n.querySelector('.d:last-child');
+    const nw = document.createElement('span');
+    nw.className = 'd';
+    nw.textContent = pad(i);
+    n.append(nw);
+    // subindo: o atual sai por cima e o próximo entra de baixo; descendo, o contrário
+    const off = dir > 0 ? 60 : -60, t = dur * .9;
+    nw.animate([{ transform: `translateY(${off}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: t, easing: ease });
+    if (old) {
+      old.style.cssText = 'position:absolute;left:0;top:0';
+      old.animate([{ transform: 'none', opacity: 1 }, { transform: `translateY(${-off}%)`, opacity: 0 }], { duration: t, easing: ease, fill: 'forwards' })
+        .onfinish = () => old.remove();
+    }
+  });
 })();

@@ -315,30 +315,22 @@ summary:focus-visible,.btn:focus-visible,button:focus-visible{outline:2px solid 
 /* ---------- transição entre páginas (View Transitions entre documentos) ---------- */
 @view-transition{navigation:auto}
 /* A captura "root" tem o tamanho da janela: o zoom parte sempre do centro do que está na tela,
-   mesmo com a página rolada. A navbar e o número grande têm transições próprias. */
+   mesmo com a página rolada. A navbar tem transição própria; o número grande conta (JS). */
 header.nav{view-transition-name:navbar}
-.hero .num{view-transition-name:stagenum}
 ::view-transition-group(navbar),::view-transition-old(navbar),::view-transition-new(navbar){animation:none}
 /* a foto antiga da navbar (com o sublinhado no item anterior) não aparece: só a nova, ao vivo, com o sublinhado caminhando */
 ::view-transition-old(navbar){display:none}
 /* conteúdo: sai reduzindo (1 → .97) e entra vindo de levemente maior (1.02 → 1), com fade */
 ::view-transition-old(root){animation:vt-zoom-out .36s cubic-bezier(.4,0,.2,1) both}
 ::view-transition-new(root){animation:vt-zoom-in .4s cubic-bezier(.2,.7,.2,1) .04s both}
-/* número grande: o antigo sai subindo, o novo entra vindo de baixo */
-::view-transition-group(stagenum){animation-duration:.4s;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
-::view-transition-old(stagenum){animation:vt-num-out .32s cubic-bezier(.4,0,.2,1) both}
-::view-transition-new(stagenum){animation:vt-num-in .4s cubic-bezier(.2,.7,.2,1) .06s both}
 @keyframes vt-zoom-out{to{opacity:0;transform:scale(.97)}}
 @keyframes vt-zoom-in{from{opacity:0;transform:scale(1.02)}}
-@keyframes vt-num-out{to{opacity:0;transform:translateY(-40px)}}
-@keyframes vt-num-in{from{opacity:0;transform:translateY(40px)}}
 @keyframes vt-fade-out{to{opacity:0}}
 @keyframes vt-fade-in{from{opacity:0}}
 /* reduced-motion: sem zoom nem deslocamento, só um fade curto */
 @media (prefers-reduced-motion:reduce){
-  ::view-transition-old(root),::view-transition-old(stagenum){animation:vt-fade-out .15s linear both}
-  ::view-transition-new(root),::view-transition-new(stagenum){animation:vt-fade-in .15s linear both}
-  ::view-transition-group(stagenum){animation:none}
+  ::view-transition-old(root){animation:vt-fade-out .15s linear both}
+  ::view-transition-new(root){animation:vt-fade-in .15s linear both}
 }
 
 /* ---------- impressão / PDF ---------- */
@@ -402,3 +394,7 @@ footer p{margin:.15rem 0}
   .team-pop td:first-child{white-space:nowrap}
 }
 @media print{.team-fab{display:none!important}}
+
+/* número grande: contagem estilo odômetro ao trocar de página */
+.hero .num{overflow:hidden;height:1em}
+.hero .num .d{display:block}
