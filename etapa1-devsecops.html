@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Etapa 1 · Pipeline DevSecOps — VIN Share</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<main>
+  <span class="tag">Etapa 1 · peso 3,0</span>
+  <h1 style="margin-top:.6rem">Pipeline DevSecOps &amp; Análise de Código</h1>
+  <p class="lead">Como o código do VIN Share (APIs FastAPI dos hubs, notebooks de ML, painel Streamlit e integrações de mensageria) é verificado automaticamente antes de chegar em produção: <b>SAST com Semgrep</b> e <b>secret scanning com Trufflehog</b>, rodando localmente no pre-commit e no pipeline do GitHub Actions.</p>
+
+  <h2 id="ssdlc">SDLC × SSDLC: shift-left</h2>
+  <p>No SDLC tradicional, a segurança aparece no fim, com um pentest antes do go-live, e cada falha descoberta ali custa caro para corrigir. No <b>SSDLC (Secure SDLC)</b> a segurança é "empurrada para a esquerda" (<i>shift-left</i>): vira atividade de cada fase, e boa parte dela é automatizada no fluxo do desenvolvedor.</p>
+<div class="grid g2 cmp">
+<div><h3 style="text-align:center">SDLC tradicional</h3>
+<pre class="mermaid">
+flowchart TD
+  A1[Requisitos] --> A2[Design] --> A3[Código] --> A4[Testes] --> A5[Deploy] --> A6[Pentest<br/>no final]:::late
+  classDef late stroke:#f85149,stroke-width:2px
+</pre></div>
+<div><h3 style="text-align:center">SSDLC (shift-left)</h3>
+<pre class="mermaid">
+flowchart TD
+  B1[Requisitos<br/>+ LGPD / ASVS] --> B2[Design<br/>+ threat modeling] --> B3[Código<br/>+ pre-commit Trufflehog<br/>+ Semgrep na IDE]:::sec --> B4[CI<br/>+ SAST / SCA / secrets]:::sec --> B5[Deploy<br/>+ scan de imagem]:::sec --> B6[Operação<br/>+ ELK / alertas]:::sec
+  classDef sec stroke:#3fb950,stroke-width:2px
+</pre></div>
+</div>
+  <div class="grid">
+    <div class="card"><h3>Custo de correção</h3><p class="muted">Um segredo barrado no pre-commit custa segundos. O mesmo segredo publicado no GitHub exige rotação da chave, auditoria de uso e, no caso da API do WhatsApp, pode resultar em envio de mensagens fraudulentas para os clientes Ford.</p></div>
+    <div class="card"><h3>Feedback rápido</h3><p class="muted">O desenvolvedor recebe o achado do Semgrep no próprio PR, com linha, regra e sugestão de correção, sem esperar um relatório de auditoria.</p></div>
+    <div class="card"><h3>Gate automático</h3><p class="muted">Achados <span class="tag crit">CRITICAL</span> e <span class="tag high">HIGH</span>, ou segredos verificados, bloqueiam o merge e o deploy. A política vira código.</p></div>
+  </div>
+
+  <h2 id="cicd">Diagrama do pipeline CI/CD</h2>
+  <p>O fluxo completo tem os pontos onde <b>Trufflehog</b> e <b>Semgrep</b> executam. Os pontos de SCA e Container Security (tracejados) são os que pesquisamos e posicionamos na arquitetura, sem aplicação nesta sprint.</p>
+<pre class="mermaid">
+flowchart TD
+  DEV[Dev escreve código<br/>API / ML / Streamlit] --> PC{pre-commit hook}
+  PC -->|Trufflehog local| PCS{segredo?}
+  PCS -->|sim| BLK1[Commit bloqueado<br/>dev remove segredo]:::bad
+  PCS -->|não| PUSH[git push / Pull Request]
+  PUSH --> GA[GitHub Actions<br/>security.yml]
+  GA --> J1[Job 1: Trufflehog<br/>histórico git completo]:::sec
+  GA --> J2[Job 2: Semgrep SAST<br/>regras oficiais<br/>+ regras VIN Share]:::sec
+  GA -.-> J3[Job 3: SCA<br/>pip-audit<br/>Dependabot]:::fut
+  J1 & J2 & J3 --> GATE{Quality gate<br/>CRITICAL/HIGH ou<br/>segredo verificado?}
+  GATE -->|sim| BLK2[PR bloqueado<br/>SARIF no GitHub Security]:::bad
+  GATE -->|não| BUILD[Build imagem Docker<br/>FastAPI + Streamlit]
+  BUILD -.-> J4[Trivy: scan de imagem]:::fut
+  J4 -.-> DEP[Deploy staging]
+  BUILD --> DEP
+  DEP --> PROD[Deploy produção<br/>com aprovação manual]
+  classDef sec stroke:#3fb950,stroke-width:2px
+  classDef bad stroke:#f85149,stroke-width:2px
+  classDef fut stroke:#d29922,stroke-dasharray:5 5
+</pre>
+
+  <h3>Simulação do pipeline</h3>
+  <p class="muted">Rode os dois cenários: um PR limpo e um PR em que um desenvolvedor deixou o token da API do WhatsApp hardcoded no Engagement Hub.</p>
+  <div class="card" data-pipe>
+    <div class="pipe">
+      <div class="stage" data-id="checkout"><b>checkout</b>fetch-depth: 0</div>
+      <div class="stage" data-id="secrets"><b>Trufflehog</b>secret scan</div>
+      <div class="stage" data-id="sast"><b>Semgrep</b>SAST</div>
+      <div class="stage" data-id="test"><b>pytest</b>unit tests</div>
+      <div class="stage" data-id="build"><b>docker build</b>api + dash</div>
+      <div class="stage" data-id="deploy"><b>deploy</b>staging</div>
+    </div>
+    <button class="btn" data-scn="ok">▶ PR limpo</button>
+    <button class="btn ghost" data-scn="leak">▶ PR com segredo vazado</button>
+    <p class="pipe-out" style="margin:.8rem 0 0;font-family:var(--mono);font-size:.88rem"></p>
+  </div>
+
+  <h2 id="trufflehog">Secret Scanning com Trufflehog</h2>
+  <p>O Trufflehog procura credenciais combinando <b>regex</b> (padrões conhecidos: AWS, Twilio, SendGrid, Meta/WhatsApp, chaves privadas, JWT secrets) com <b>entropia</b> (strings aleatórias demais para serem texto comum). Seu diferencial é a <b>validação ativa</b>: ele testa a credencial contra a API do provedor e marca o resultado como <span class="tag crit">verified</span> ou <span class="tag">unverified</span>, o que reduz muito o ruído. No VIN Share os segredos mais sensíveis são os tokens dos canais (WhatsApp Cloud API, Twilio SMS, SendGrid), a <code>JWT_SECRET</code> da API, a chave Fernet de criptografia da PII e as credenciais do banco.</p>
+  <p>Usamos o Trufflehog em <b>duas camadas</b>:</p>
+  <div class="grid g2">
+    <div class="card"><h3>1. Pre-commit hook (local)</h3><p class="muted">Roda na máquina do dev antes do commit existir. É o ponto mais barato: o segredo nunca entra no histórico do git.</p></div>
+    <div class="card"><h3>2. GitHub Actions (pipeline)</h3><p class="muted">É a rede de segurança para quem não instalou o hook ou usou <code>--no-verify</code>. Varre o histórico completo do PR e bloqueia o merge.</p></div>
+  </div>
+
+  <div class="fn">.pre-commit-config.yaml</div>
+<pre class="code"><span class="c"># Hooks executados em todo "git commit" no repositório vinshare</span>
+<span class="k">repos:</span>
+  - <span class="k">repo:</span> local
+    <span class="k">hooks:</span>
+      - <span class="k">id:</span> trufflehog
+        <span class="k">name:</span> <span class="s">TruffleHog — bloqueia segredos antes do commit</span>
+        <span class="k">entry:</span> <span class="s">bash -c 'trufflehog git file://. --since-commit HEAD --results=verified,unknown --fail'</span>
+        <span class="k">language:</span> system
+        <span class="k">stages:</span> [<span class="s">"pre-commit"</span>, <span class="s">"pre-push"</span>]
+
+  - <span class="k">repo:</span> https://github.com/semgrep/pre-commit
+    <span class="k">rev:</span> <span class="s">'v1.85.0'</span>
+    <span class="k">hooks:</span>
+      - <span class="k">id:</span> semgrep
+        <span class="k">args:</span> [<span class="s">'--config'</span>, <span class="s">'.semgrep/vinshare.yml'</span>, <span class="s">'--error'</span>, <span class="s">'--severity'</span>, <span class="s">'ERROR'</span>]
+
+  - <span class="k">repo:</span> https://github.com/pre-commit/pre-commit-hooks
+    <span class="k">rev:</span> v4.6.0
+    <span class="k">hooks:</span>
+      - <span class="k">id:</span> detect-private-key
+      - <span class="k">id:</span> check-added-large-files   <span class="c"># evita subir dumps .db/.csv com PII</span>
+        <span class="k">args:</span> [<span class="s">'--maxkb=5000'</span>]</pre>
+
+  <h3>Teste real de bloqueio (simulado)</h3>
+  <p>Um desenvolvedor, testando o envio de lembrete de revisão pelo WhatsApp, deixou o token de acesso no código:</p>
+  <div class="fn bad">engagement_hub/channels/whatsapp.py (versão com problema)</div>
+<pre class="code"><span class="k">import</span> httpx
+
+WHATSAPP_PHONE_ID = <span class="s">"105623987412345"</span>
+WHATSAPP_TOKEN = <span class="s">"EAAG7xZBq9ZCkQBO4mZCw1pT0kEnFaKeExAmPlE9vZBqZCZAhX2ZD"</span>  <span class="r"># ❌ hardcoded</span>
+
+<span class="k">def</span> <span class="f">send_service_reminder</span>(phone: str, vin: str, km: int):
+    ...</pre>
+  <div class="term"><div class="term-bar"><i></i><i></i><i></i>bash — vinshare (feature/lembrete-revisao)</div>
+<pre data-type="70">$ git add engagement_hub/channels/whatsapp.py
+$ git commit -m "feat(engagement): lembrete de revisão via WhatsApp"
+TruffleHog — bloqueia segredos antes do commit..........................<span class="r">Failed</span>
+- hook id: trufflehog
+- exit code: 183
+
+🐷🔑🐷  TruffleHog. Unearth your secrets. 🐷🔑🐷
+
+<span class="r">✅ Found verified result 🐷🔑</span>
+Detector Type: <span class="y">FacebookOAuth</span>
+Decoder Type: PLAIN
+Raw result: EAAG7xZBq9ZCkQBO4mZ****************
+File: engagement_hub/channels/whatsapp.py
+Line: 4
+Commit: (staged)
+
+<span class="r">ERROR: 1 verified secret found. Commit aborted.</span>
+detect private key.......................................................<span class="g">Passed</span>
+semgrep..................................................................<span class="g">Passed</span>
+$ █</pre></div>
+  <p>Correção: o token sai do código e passa a ser lido de variável de ambiente, injetada pelo GitHub Secrets ou pelo cofre de segredos. Como a validação ativa confirmou que a chave era válida, ela também é <b>rotacionada</b> no Meta Business Manager, mesmo sem ter sido publicada.</p>
+  <div class="fn good">engagement_hub/channels/whatsapp.py (corrigido)</div>
+<pre class="code"><span class="k">from</span> vinshare.config <span class="k">import</span> settings   <span class="c"># pydantic-settings lê do ambiente / vault</span>
+
+<span class="k">def</span> <span class="f">send_service_reminder</span>(phone: str, vin: str, km: int):
+    headers = {<span class="s">"Authorization"</span>: <span class="s">f"Bearer </span>{settings.whatsapp_token.get_secret_value()}<span class="s">"</span>}
+    ...</pre>
+  <div class="term"><div class="term-bar"><i></i><i></i><i></i>bash — vinshare</div>
+<pre data-type="70">$ git commit -m "feat(engagement): lembrete de revisão via WhatsApp (token via env)"
+TruffleHog — bloqueia segredos antes do commit..........................<span class="g">Passed</span>
+detect private key.......................................................<span class="g">Passed</span>
+semgrep..................................................................<span class="g">Passed</span>
+[feature/lembrete-revisao 8c41e2a] feat(engagement): lembrete de revisão via WhatsApp (token via env)
+ 2 files changed, 38 insertions(+)</pre></div>
+
+  <h3>Varredura completa do histórico (resultado)</h3>
+  <p>Na adoção da ferramenta rodamos uma varredura em todo o histórico do repositório. Os achados abaixo mostram por que o scan do histórico importa: um segredo apagado em commit posterior continua acessível no git.</p>
+  <div class="term"><div class="term-bar"><i></i><i></i><i></i>trufflehog git file://. --results=verified,unknown --json | jq</div>
+<pre data-type="40">$ trufflehog git file://. --results=verified,unknown
+🐷🔑🐷  TruffleHog. Unearth your secrets. 🐷🔑🐷
+<span class="r">✅ Found verified result 🐷🔑</span>
+Detector Type: <span class="y">SendGrid</span>   File: notebooks/02_campanha_email.ipynb   Line: 57
+Commit: 3f9a1c0  Author: dev-ml   Date: 2026-08-12
+<span class="y">Found unverified result 🐷❓</span>
+Detector Type: <span class="y">Twilio</span>     File: engagement_hub/sms.py (removido em a71bd02)   Line: 9
+Commit: 1d02e77  Date: 2026-07-30
+<span class="y">Found unverified result 🐷❓</span>
+Detector Type: <span class="y">URI</span>        File: docker-compose.dev.yml   Line: 22
+Raw: postgresql://vinshare:****@db:5432/vinshare
+Commit: 5b3d8f4
+<span class="muted">finished scanning  chunks=4812 bytes=38.2MB verified_secrets=1 unverified_secrets=2 scan_duration=14.3s</span></pre></div>
+  <div class="tbl"><table>
+    <tr><th>Achado</th><th>Status</th><th>Risco para o VIN Share</th><th>Ação</th></tr>
+    <tr><td>SendGrid API key em notebook</td><td><span class="tag crit">verified</span></td><td>Disparo de e-mails de phishing em nome da Ford para a base de clientes</td><td>Rotacionar chave, limpar output do notebook (<code>nbstripout</code>), mover para <code>.env</code></td></tr>
+    <tr><td>Twilio SID/token (removido)</td><td><span class="tag">unverified</span></td><td>Chave já inválida, mas o histórico ainda a expõe</td><td>Confirmar revogação no console Twilio e registrar no inventário</td></tr>
+    <tr><td>URI com senha no compose dev</td><td><span class="tag">unverified</span></td><td>Credencial de ambiente de desenvolvimento reutilizada</td><td>Trocar por <code>${DB_PASSWORD}</code> e usar <code>.env.example</code></td></tr>
+  </table></div>
+
+  <h2 id="semgrep">SAST com Semgrep</h2>
+  <p>O Semgrep faz <b>análise semântica</b> do código-fonte, sem executá-lo. Ele entende a estrutura da linguagem (AST), então a regra <code>cursor.execute(f"...")</code> encontra a query montada com f-string mesmo que o nome da variável ou a formatação mudem. Assim identifica <i>code smells</i> de segurança: injeção, desserialização insegura, criptografia fraca, JWT mal validado, debug ligado etc.</p>
+  <p>Aplicamos dois conjuntos de regras:</p>
+  <ul>
+    <li><b>Rulesets oficiais:</b> <code>p/python</code>, <code>p/owasp-top-ten</code>, <code>p/jwt</code>, <code>p/secrets</code>, <code>p/dockerfile</code>.</li>
+    <li><b>Regras customizadas do VIN Share</b> (<code>.semgrep/vinshare.yml</code>), escritas para riscos específicos do projeto, como os abaixo.</li>
+  </ul>
+  <div class="fn">.semgrep/vinshare.yml</div>
+<pre class="code"><span class="k">rules:</span>
+  - <span class="k">id:</span> vinshare-sqlite-fstring-injection
+    <span class="k">languages:</span> [python]
+    <span class="k">severity:</span> ERROR
+    <span class="k">message:</span> <span class="s">Query SQL montada com f-string/concatenação. Use parâmetros (?) no sqlite3.</span>
+    <span class="k">metadata:</span> { <span class="k">owasp:</span> <span class="s">"A03:2021 Injection"</span>, <span class="k">cwe:</span> <span class="s">"CWE-89"</span> }
+    <span class="k">pattern-either:</span>
+      - <span class="k">pattern:</span> $CUR.execute(f"...")
+      - <span class="k">pattern:</span> $CUR.execute("..." + $X)
+      - <span class="k">pattern:</span> $CUR.execute("..." % $X)
+
+  - <span class="k">id:</span> vinshare-unsafe-model-load
+    <span class="k">languages:</span> [python]
+    <span class="k">severity:</span> ERROR
+    <span class="k">message:</span> <span class="s">pickle/joblib.load executa código arbitrário. Carregue modelos só de artefatos assinados (hash verificado).</span>
+    <span class="k">metadata:</span> { <span class="k">owasp:</span> <span class="s">"A08:2021 Software and Data Integrity Failures"</span>, <span class="k">cwe:</span> <span class="s">"CWE-502"</span> }
+    <span class="k">patterns:</span>
+      - <span class="k">pattern-either:</span>
+          - <span class="k">pattern:</span> pickle.load(...)
+          - <span class="k">pattern:</span> joblib.load(...)
+      - <span class="k">pattern-not-inside:</span> |
+          verify_model_signature(...)
+          ...
+
+  - <span class="k">id:</span> vinshare-jwt-no-verify
+    <span class="k">languages:</span> [python]
+    <span class="k">severity:</span> ERROR
+    <span class="k">message:</span> <span class="s">JWT decodificado sem verificar assinatura ou com algoritmo não fixado.</span>
+    <span class="k">metadata:</span> { <span class="k">owasp:</span> <span class="s">"API2:2023 Broken Authentication"</span>, <span class="k">cwe:</span> <span class="s">"CWE-347"</span> }
+    <span class="k">pattern-either:</span>
+      - <span class="k">pattern:</span> jwt.decode(..., options={..., "verify_signature": False, ...}, ...)
+      - <span class="k">pattern:</span> jwt.decode($T, $K)
+
+  - <span class="k">id:</span> vinshare-pii-in-logs
+    <span class="k">languages:</span> [python]
+    <span class="k">severity:</span> WARNING
+    <span class="k">message:</span> <span class="s">Possível PII (cpf/telefone/email) em log. Use mask_pii() — LGPD.</span>
+    <span class="k">pattern-either:</span>
+      - <span class="k">pattern:</span> logger.$L(..., cpf=$X, ...)
+      - <span class="k">pattern:</span> logger.$L(f"...{$C.cpf}...")
+      - <span class="k">pattern:</span> logger.$L(f"...{$C.phone}...")
+
+  - <span class="k">id:</span> vinshare-fastapi-debug
+    <span class="k">languages:</span> [python]
+    <span class="k">severity:</span> WARNING
+    <span class="k">message:</span> <span class="s">FastAPI/uvicorn em modo debug/reload expõe stack traces.</span>
+    <span class="k">pattern-either:</span>
+      - <span class="k">pattern:</span> FastAPI(..., debug=True, ...)
+      - <span class="k">pattern:</span> uvicorn.run(..., reload=True, ...)</pre>
+
+  <h3>Resultado da varredura (simulado)</h3>
+  <div class="term"><div class="term-bar"><i></i><i></i><i></i>semgrep scan --config p/owasp-top-ten --config .semgrep/vinshare.yml</div>
+<pre data-type="35">$ semgrep scan --config p/python --config p/owasp-top-ten --config p/jwt --config .semgrep/vinshare.yml
+┌──── ○○○ ────┐
+│ Semgrep CLI │
+└─────────────┘
+Scanning 214 files (only git-tracked) with 1.187 Code rules
+  <span class="muted">Languages: python, yaml, dockerfile, json</span>
+
+┌──────────────────┐
+│ 6 Code Findings  │
+└──────────────────┘
+
+    customer360_hub/repository.py
+    <span class="r">❯❯❱ vinshare-sqlite-fstring-injection</span>
+          Query SQL montada com f-string/concatenação. Use parâmetros (?) no sqlite3.
+           42┆ cur.execute(f"SELECT * FROM customers WHERE vin = '{vin}'")
+
+    prediction_hub/model_loader.py
+    <span class="r">❯❯❱ vinshare-unsafe-model-load</span>
+          pickle/joblib.load executa código arbitrário. Carregue modelos só de artefatos assinados.
+           18┆ model = joblib.load(f"/models/{model_name}.pkl")
+
+    api/auth.py
+    <span class="r">❯❯❱ vinshare-jwt-no-verify</span>
+          JWT decodificado sem verificar assinatura ou com algoritmo não fixado.
+           31┆ payload = jwt.decode(token, options={"verify_signature": False})
+
+    api/main.py
+    <span class="y"> ❯❱ vinshare-fastapi-debug</span>
+           12┆ app = FastAPI(title="VIN Share API", debug=True)
+
+    engagement_hub/campaigns.py
+    <span class="y"> ❯❱ vinshare-pii-in-logs</span>
+           77┆ logger.info(f"Enviando lembrete para {customer.phone} ({customer.cpf})")
+
+    dashboard/app.py
+    <span class="y"> ❯❱ python.lang.security.audit.insecure-transport.requests.request-session-with-http</span>
+           23┆ requests.get("http://prediction-hub:8000/score", params={"vin": vin})
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Ran 1.187 rules on 214 files: <span class="r">6 findings (3 blocking)</span>.</pre></div>
+  <div class="tbl"><table>
+    <tr><th>Regra</th><th>Sev.</th><th>Arquivo</th><th>Mapeamento</th><th>Correção</th></tr>
+    <tr><td>sqlite-fstring-injection</td><td><span class="tag crit">ERROR</span></td><td>customer360_hub/repository.py:42</td><td>A03 / CWE-89</td><td>Query parametrizada <code>execute("... WHERE vin = ?", (vin,))</code> (ver <a href="etapa2-codigo-infra.html#api">Etapa 2</a>)</td></tr>
+    <tr><td>unsafe-model-load</td><td><span class="tag crit">ERROR</span></td><td>prediction_hub/model_loader.py:18</td><td>A08 / CWE-502</td><td>Allowlist de modelos e verificação SHA-256 antes do load</td></tr>
+    <tr><td>jwt-no-verify</td><td><span class="tag crit">ERROR</span></td><td>api/auth.py:31</td><td>API2 / CWE-347</td><td><code>algorithms=["HS256"]</code>, exp/iss/aud obrigatórios</td></tr>
+    <tr><td>fastapi-debug</td><td><span class="tag med">WARNING</span></td><td>api/main.py:12</td><td>A05</td><td><code>debug=settings.env == "dev"</code></td></tr>
+    <tr><td>pii-in-logs</td><td><span class="tag med">WARNING</span></td><td>engagement_hub/campaigns.py:77</td><td>A09 / LGPD</td><td><code>mask_pii()</code> e log apenas do <code>customer_id</code></td></tr>
+    <tr><td>insecure-transport</td><td><span class="tag med">WARNING</span></td><td>dashboard/app.py:23</td><td>A02</td><td>HTTPS/mTLS entre serviços internos</td></tr>
+  </table></div>
+
+  <h2 id="actions">Workflow do GitHub Actions</h2>
+  <p>A cada <code>push</code> e <code>pull_request</code> para <code>main</code>/<code>develop</code>, o workflow roda Trufflehog e Semgrep em paralelo. O job de build só executa se ambos passarem (<code>needs:</code>), e os resultados do Semgrep vão para a aba <i>Security</i> do GitHub em formato SARIF.</p>
+  <div class="fn">.github/workflows/security.yml</div>
+<pre class="code"><span class="k">name:</span> VIN Share — Security Pipeline
+<span class="k">on:</span>
+  <span class="k">push:</span>
+    <span class="k">branches:</span> [main, develop]
+  <span class="k">pull_request:</span>
+    <span class="k">branches:</span> [main, develop]
+
+<span class="k">permissions:</span>
+  <span class="k">contents:</span> read
+  <span class="k">security-events:</span> write   <span class="c"># upload SARIF</span>
+
+<span class="k">jobs:</span>
+  <span class="k">secret-scan:</span>
+    <span class="k">name:</span> Trufflehog — secret scanning
+    <span class="k">runs-on:</span> ubuntu-latest
+    <span class="k">steps:</span>
+      - <span class="k">uses:</span> actions/checkout@v4
+        <span class="k">with:</span>
+          <span class="k">fetch-depth:</span> 0          <span class="c"># histórico completo, não só o último commit</span>
+      - <span class="k">name:</span> TruffleHog OSS
+        <span class="k">uses:</span> trufflesecurity/trufflehog@main
+        <span class="k">with:</span>
+          <span class="k">extra_args:</span> --results=verified,unknown --fail
+
+  <span class="k">sast:</span>
+    <span class="k">name:</span> Semgrep — SAST
+    <span class="k">runs-on:</span> ubuntu-latest
+    <span class="k">container:</span>
+      <span class="k">image:</span> semgrep/semgrep
+    <span class="k">steps:</span>
+      - <span class="k">uses:</span> actions/checkout@v4
+      - <span class="k">name:</span> Semgrep scan
+        <span class="k">run:</span> |
+          semgrep scan \
+            --config p/python --config p/owasp-top-ten --config p/jwt \
+            --config p/dockerfile --config .semgrep/vinshare.yml \
+            --sarif --output semgrep.sarif \
+            --severity ERROR --error        <span class="c"># ERROR bloqueia o job</span>
+      - <span class="k">name:</span> Upload SARIF
+        <span class="k">if:</span> always()
+        <span class="k">uses:</span> github/codeql-action/upload-sarif@v3
+        <span class="k">with:</span>
+          <span class="k">sarif_file:</span> semgrep.sarif
+
+  <span class="k">build-and-deploy:</span>
+    <span class="k">name:</span> Build &amp; deploy (staging)
+    <span class="k">needs:</span> [secret-scan, sast]   <span class="c"># quality gate: só roda se os dois passarem</span>
+    <span class="k">if:</span> github.ref == 'refs/heads/main'
+    <span class="k">runs-on:</span> ubuntu-latest
+    <span class="k">environment:</span> staging
+    <span class="k">steps:</span>
+      - <span class="k">uses:</span> actions/checkout@v4
+      - <span class="k">run:</span> docker build -t ghcr.io/vinshare/api:${{ github.sha }} .
+      - <span class="k">run:</span> ./scripts/deploy.sh staging
+        <span class="k">env:</span>
+          <span class="k">DEPLOY_TOKEN:</span> ${{ secrets.DEPLOY_TOKEN }}</pre>
+
+  <h3>Execução no GitHub Actions (simulado)</h3>
+  <div class="term"><div class="term-bar"><i></i><i></i><i></i>Actions · PR #87 feat(prediction): novo modelo de churn v3.2</div>
+<pre data-type="90">VIN Share — Security Pipeline  #214  ·  triggered by pull_request
+  <span class="g">✔</span> Trufflehog — secret scanning        <span class="muted">41s</span>
+  <span class="r">✖</span> Semgrep — SAST                       <span class="muted">1m12s</span>
+      Error: 1 blocking finding
+      prediction_hub/model_loader.py:18  vinshare-unsafe-model-load (ERROR)
+  <span class="muted">⊘</span> Build &amp; deploy (staging)             <span class="muted">skipped — needs [sast] failed</span>
+
+<span class="r">✖ Some checks were not successful</span> — Merging is blocked
+  Required status check "Semgrep — SAST" failed.</pre></div>
+
+  <h2 id="sca">Pesquisa: SCA e Container Security</h2>
+  <p>Semgrep e Trufflehog cobrem o <b>código que escrevemos</b>. Porém a maior parte do que roda em produção é <b>código de terceiros</b> (bibliotecas e imagens base). Essas duas práticas completam a cobertura e já estão posicionadas no pipeline (tracejado no diagrama), embora não tenham sido aplicadas nesta sprint.</p>
+  <div class="grid g2">
+    <div class="card">
+      <h3>SCA: Software Composition Analysis</h3>
+      <p>Faz o inventário das dependências (diretas e transitivas) e cruza as versões com bases de vulnerabilidades (CVE, GitHub Advisory, OSV). Também verifica licenças.</p>
+      <p><b>No VIN Share:</b> o <code>requirements.txt</code> tem pandas, scikit-learn, FastAPI, Streamlit, python-jose/PyJWT, httpx e outras. Uma CVE em uma lib de parsing JWT ou no Starlette afeta diretamente a API de todas as concessionárias.</p>
+      <p><b>Ferramentas:</b> <code>pip-audit</code> (OSV), Dependabot/Renovate (PRs de atualização automáticos), Snyk Open Source, OWASP Dependency-Check.</p>
+      <p><b>Onde entra:</b> job paralelo no CI, que bloqueia CVEs CRITICAL com correção disponível, mais um scan agendado semanal, já que novas CVEs surgem mesmo sem mudança no código. Também gera SBOM (CycloneDX) de cada release.</p>
+<pre class="code"><span class="c"># exemplo de saída esperada</span>
+$ pip-audit -r requirements.txt
+Name        Version ID                  Fix Versions
+----------- ------- ------------------- ------------
+python-jose 3.3.0   PYSEC-2024-232      3.4.0
+starlette   0.36.1  GHSA-f96h-pmfr-66vw 0.40.0</pre>
+    </div>
+    <div class="card">
+      <h3>Container Security</h3>
+      <p>A API (FastAPI/uvicorn), o dashboard Streamlit e os jobs de ML rodam em containers Docker. Proteger containers envolve três camadas:</p>
+      <ul>
+        <li><b>Imagem:</b> scan de CVEs de pacotes do SO e Python (Trivy, Grype, Docker Scout); imagem base mínima (<code>python:3.12-slim</code> ou distroless).</li>
+        <li><b>Configuração:</b> lint do Dockerfile (Hadolint, Semgrep <code>p/dockerfile</code>), usuário não-root, sem segredos em <code>ENV</code>/camadas, <code>HEALTHCHECK</code>.</li>
+        <li><b>Runtime:</b> filesystem read-only, <code>no-new-privileges</code>, limites de CPU/memória, assinatura de imagem (Cosign) e detecção em runtime (Falco).</li>
+      </ul>
+      <p><b>Onde entra:</b> logo após o <code>docker build</code> e antes do push para o registry. O Trivy bloqueia CVEs CRITICAL, e o registry só aceita imagens assinadas.</p>
+<pre class="code">$ trivy image --severity CRITICAL,HIGH --exit-code 1 ghcr.io/vinshare/api:8c41e2a
+Total: 2 (HIGH: 2, CRITICAL: 0)</pre>
+    </div>
+  </div>
+  <div class="tbl"><table>
+    <tr><th>Prática</th><th>O que protege</th><th>Momento no pipeline</th><th>Status na Sprint 3</th></tr>
+    <tr><td>Trufflehog</td><td>Credenciais no código/histórico</td><td>pre-commit + CI</td><td><span class="tag ok">aplicado</span></td></tr>
+    <tr><td>Semgrep (SAST)</td><td>Código próprio</td><td>pre-commit + CI</td><td><span class="tag ok">aplicado</span></td></tr>
+    <tr><td>SCA</td><td>Dependências Python</td><td>CI + agendado</td><td><span class="tag med">pesquisado</span></td></tr>
+    <tr><td>Container Security</td><td>Imagens Docker e runtime</td><td>pós-build, pré-registry</td><td><span class="tag med">pesquisado</span></td></tr>
+  </table></div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

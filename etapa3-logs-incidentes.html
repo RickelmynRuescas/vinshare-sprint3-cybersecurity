@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Etapa 3 · Logs &amp; Incidentes — VIN Share</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<main>
+  <span class="tag">Etapa 3 · peso 2,0</span>
+  <h1 style="margin-top:.6rem">Logs, Alertas e Resposta a Incidentes</h1>
+  <p class="lead">Plano de monitoramento do VIN Share: o que é registrado em cada componente (API, app Ford já existente integrado aos hubs, dispositivos IoT e modelos de ML), como os logs viram alertas na stack ELK e como o time responde a um incidente usando o framework <b>SANS PICERL</b>.</p>
+
+  <h2 id="plano">Plano de monitoramento</h2>
+  <div class="tbl"><table>
+    <tr><th>Componente</th><th>Eventos registrados</th><th>Métricas</th><th>Coletor</th></tr>
+    <tr><td><b>API Gateway / Hubs</b></td><td>login sucesso/falha, refresh e revogação de token, 401/403/429, acesso negado por escopo, visualização de PII, alterações críticas (usuário, perfil, config, rate limit)</td><td>req/s, latência p95, taxa de 4xx/5xx, 429 por IP</td><td>Filebeat (JSON stdout)</td></tr>
+    <tr><td><b>App Ford (existente)</b></td><td>início de sessão, falha de pinning, root/jailbreak detectado, versão desatualizada, crash</td><td>sessões ativas, % de falha de pinning, versões em uso</td><td>SDK → <code>mobile-bff</code> (<code>/v1/mobile/events</code>) → Filebeat</td></tr>
+    <tr><td><b>IoT / TCU</b></td><td>conexão/desconexão, certificado inválido, payload rejeitado pela validação, device desconhecido</td><td>msgs/min por device, % de payload inválido, devices ativos</td><td><code>iot-ingestor</code> (MQTT/mTLS) → Filebeat</td></tr>
+    <tr><td><b>ML / Prediction Hub</b></td><td>deploy de modelo (quem/hash), predição, drift detectado, carga de modelo fora da allowlist</td><td>latência, PSI de drift, distribuição do Health Score, volume de consultas por usuário (extração de modelo)</td><td>Metricbeat + logs JSON</td></tr>
+    <tr><td><b>Engagement Hub</b></td><td>campanha criada/disparada, mensagem enviada/falha, opt-out</td><td>mensagens/h por canal, taxa de falha, disparos fora do horário</td><td>Filebeat</td></tr>
+  </table></div>
+  <div class="note"><b>Regras de logging:</b> formato JSON de linha única; <code>@timestamp</code> em UTC ISO-8601; <code>trace_id</code> propagado entre hubs; <b>nunca</b> registrar senha, token, CPF ou telefone completos (usar <code>mask_pii()</code>, conforme a regra Semgrep <i>pii-in-logs</i>). Os logs de segurança ficam retidos por 1 ano, em índice separado com acesso restrito ao perfil Administrador.</div>
+
+  <div class="note"><b>Sobre IoT:</b> a telemetria de veículos conectados é a <b>fase 3</b> da evolução do projeto (Batch/Histórico → Comportamental Digital → Telemetria Conectada). Os eventos, métricas e alertas de IoT desta página foram desenhados antecipando essa fase.</div>
+
+  <h2 id="elk">Stack de observabilidade: ELK</h2>
+<pre class="mermaid">
+flowchart LR
+  M[App Ford existente] -->|HTTPS + pinning| BFF[mobile-bff]
+  I[TCUs IoT] -->|MQTT / mTLS| ING[iot-ingestor]
+  subgraph Backend[Backends VIN Share - rede interna]
+    A[API / Hubs<br/>FastAPI]
+    BFF
+    ING
+    ML[Prediction Hub]
+  end
+  A & BFF & ING -->|Filebeat| LS
+  ML -->|Metricbeat + Filebeat| LS
+  LS[Logstash<br/>parse, GeoIP,<br/>mascara PII<br/>sem exposição externa]
+  LS --> ES[(Elasticsearch<br/>vinshare-security-*<br/>vinshare-app-*)]
+  ES --> KB[Kibana<br/>dashboards]
+  ES --> AL[Alerting / Watcher<br/>+ regras de detecção]
+  AL --> N[Teams / e-mail / PagerDuty]
+  AL --> IR[Time de resposta<br/>PICERL]
+</pre>
+  <div class="grid">
+    <div class="card"><h3>Beats</h3><p class="muted">Agentes leves nos hosts/containers. O Filebeat lê os logs JSON e o Metricbeat coleta CPU, memória e latência.</p></div>
+    <div class="card"><h3>Logstash</h3><p class="muted">Faz ingestão e parsing: normaliza campos, enriquece com GeoIP e <b>mascara PII residual</b> antes de indexar.</p></div>
+    <div class="card"><h3>Elasticsearch</h3><p class="muted">Indexa e permite busca. Os índices de segurança são separados, com ILM (hot → warm → delete em 365 dias).</p></div>
+    <div class="card"><h3>Kibana</h3><p class="muted">Dashboards de segurança e operação, além das regras de alerta e da investigação durante incidentes.</p></div>
+  </div>
+
+  <h2 id="logs">Logs estruturados</h2>
+  <p>Fluxo simulado de eventos do VIN Share chegando ao Logstash. Os eventos de segurança (<span class="r">HIGH</span>, <span class="f">NOTICE</span>) aparecem no meio do tráfego normal.</p>
+  <div class="term"><div class="term-bar"><i></i><i></i><i></i>logstash → vinshare-* <span style="margin-left:auto" class="live">LIVE</span></div>
+    <pre id="logstream" style="height:320px"></pre></div>
+
+  <h3>Exemplos de referência</h3>
+  <div class="grid g2">
+    <div>
+  <div class="fn">Falha de autenticação</div>
+<pre class="code">{
+  <span class="s">"@timestamp"</span>: <span class="s">"2026-09-20T02:14:07.331Z"</span>,
+  <span class="s">"event"</span>: <span class="s">"auth.login.failure"</span>,
+  <span class="s">"service"</span>: <span class="s">"api-gateway"</span>,
+  <span class="s">"username"</span>: <span class="s">"gestor.rj"</span>,
+  <span class="s">"reason"</span>: <span class="s">"invalid_password"</span>,
+  <span class="s">"attempt"</span>: 6,
+  <span class="s">"ip"</span>: <span class="s">"45.155.204.17"</span>,
+  <span class="s">"geo"</span>: { <span class="s">"country"</span>: <span class="s">"NL"</span> },
+  <span class="s">"user_agent"</span>: <span class="s">"python-requests/2.31"</span>,
+  <span class="s">"severity"</span>: <span class="s">"WARN"</span>,
+  <span class="s">"trace_id"</span>: <span class="s">"7c1e9a02f4d3"</span>
+}</pre>
+    </div>
+    <div>
+  <div class="fn">Alteração crítica (auditoria)</div>
+<pre class="code">{
+  <span class="s">"@timestamp"</span>: <span class="s">"2026-09-20T13:02:44.918Z"</span>,
+  <span class="s">"event"</span>: <span class="s">"user.role.changed"</span>,
+  <span class="s">"service"</span>: <span class="s">"admin-console"</span>,
+  <span class="s">"actor"</span>: { <span class="s">"user_id"</span>: <span class="s">"u-0007"</span>, <span class="s">"role"</span>: <span class="s">"admin"</span>, <span class="s">"mfa"</span>: <span class="k">true</span> },
+  <span class="s">"target"</span>: { <span class="s">"user_id"</span>: <span class="s">"u-3120"</span>, <span class="s">"dealer_id"</span>: <span class="s">"DLR-088"</span> },
+  <span class="s">"change"</span>: { <span class="s">"from"</span>: <span class="s">"consultor"</span>, <span class="s">"to"</span>: <span class="s">"gestor"</span> },
+  <span class="s">"ip"</span>: <span class="s">"10.20.4.11"</span>,
+  <span class="s">"severity"</span>: <span class="s">"NOTICE"</span>
+}</pre>
+    </div>
+    <div>
+  <div class="fn">Telemetria IoT rejeitada</div>
+<pre class="code">{
+  <span class="s">"@timestamp"</span>: <span class="s">"2026-09-20T02:15:10.004Z"</span>,
+  <span class="s">"event"</span>: <span class="s">"iot.payload.rejected"</span>,
+  <span class="s">"service"</span>: <span class="s">"iot-ingestor"</span>,
+  <span class="s">"device_id"</span>: <span class="s">"TCU-9F21AB"</span>,
+  <span class="s">"cert_cn"</span>: <span class="s">"TCU-9F21AB"</span>,
+  <span class="s">"vin_hash"</span>: <span class="s">"sha256:4be1c0d2"</span>,
+  <span class="s">"reason"</span>: <span class="s">"validation_error: odometer_km &gt; 2000000"</span>,
+  <span class="s">"msgs_last_min"</span>: 1840,
+  <span class="s">"severity"</span>: <span class="s">"HIGH"</span>
+}</pre>
+    </div>
+    <div>
+  <div class="fn">Drift do modelo de ML</div>
+<pre class="code">{
+  <span class="s">"@timestamp"</span>: <span class="s">"2026-09-20T06:00:00.000Z"</span>,
+  <span class="s">"event"</span>: <span class="s">"ml.drift.detected"</span>,
+  <span class="s">"service"</span>: <span class="s">"prediction-hub"</span>,
+  <span class="s">"model"</span>: <span class="s">"churn_rf_v3.2"</span>,
+  <span class="s">"model_sha256"</span>: <span class="s">"9a7f...e21c"</span>,
+  <span class="s">"feature"</span>: <span class="s">"dias_desde_ultima_revisao"</span>,
+  <span class="s">"psi"</span>: 0.31, <span class="s">"threshold"</span>: 0.2,
+  <span class="s">"window"</span>: <span class="s">"7d"</span>,
+  <span class="s">"severity"</span>: <span class="s">"HIGH"</span>
+}</pre>
+    </div>
+  </div>
+
+  <h2 id="alertas">Métricas, dashboards e alertas</h2>
+  <h3>Dashboard de segurança (mock Kibana)</h3>
+  <div class="card" id="dash">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-bottom:.8rem">
+      <b>VIN Share · Security Overview</b><span class="live">monitorando</span>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <div class="kpi"><small>Req/s IoT ingest</small><b id="rps">312</b></div>
+      <div class="kpi"><small>Falhas de login (15 min)</small><b>23</b></div>
+      <div class="kpi"><small>Acessos negados (403/404 escopo)</small><b>4</b></div>
+      <div class="kpi"><small>PSI churn_rf_v3.2</small><b>0.08</b></div>
+    </div>
+    <div style="margin-top:1rem"><small class="muted">Mensagens IoT por minuto (últimos 30 min)</small><div class="bars"></div></div>
+    <div class="alert"><span class="tag crit">ALERTA CRÍTICO</span> <b>VS-IOT-001: pico anômalo de telemetria</b>: 1 device (TCU-9F21AB) enviando 1.840 msgs/min (limite 60), com 97% de payload inválido. Possível device clonado ou comprometido. Playbook PICERL acionado.</div>
+    <button class="btn" id="fire" style="margin-top:.8rem">⚡ Simular ataque IoT</button>
+  </div>
+
+  <h3>Regras de detecção (estilo Suricata)</h3>
+  <p>Usamos o formato das regras do Suricata/IDS como referência (<b>ação · protocolo · origem → destino · (opções: mensagem, conteúdo, limiar, assinatura)</b>), adaptado aos eventos e endpoints do VIN Share. As regras de rede rodam no IDS em frente ao gateway, e as regras de aplicação equivalentes rodam no Kibana Alerting sobre os logs JSON.</p>
+  <div class="fn">rules/vinshare.rules</div>
+<pre class="code"><span class="c"># ---------- API ----------</span>
+<span class="r">alert</span> http any any -&gt; $VINSHARE_API 443 (<span class="k">msg:</span><span class="s">"VINSHARE API brute force em /auth/login"</span>; \
+  flow:established,to_server; http.method; content:<span class="s">"POST"</span>; http.uri; content:<span class="s">"/auth/login"</span>; \
+  http.stat_code; content:<span class="s">"401"</span>; \
+  threshold:type both, track by_src, count 10, seconds 60; \
+  classtype:attempted-user; <span class="k">sid:</span>9100001; rev:2;)
+
+<span class="r">alert</span> http any any -&gt; $VINSHARE_API 443 (<span class="k">msg:</span><span class="s">"VINSHARE API JWT com alg none"</span>; \
+  flow:established,to_server; http.header; content:<span class="s">"Authorization|3a 20|Bearer eyJhbGciOiJub25l"</span>; \
+  classtype:attempted-admin; <span class="k">sid:</span>9100002; rev:1;)
+
+<span class="r">alert</span> http any any -&gt; $VINSHARE_API 443 (<span class="k">msg:</span><span class="s">"VINSHARE API enumeracao de VIN (scraping de Health Score)"</span>; \
+  http.uri; content:<span class="s">"/v1/vehicles/"</span>; content:<span class="s">"/health"</span>; distance:17; \
+  threshold:type threshold, track by_src, count 200, seconds 300; \
+  classtype:web-application-activity; <span class="k">sid:</span>9100003; rev:1;)
+
+<span class="r">drop</span>  http any any -&gt; $VINSHARE_API 443 (<span class="k">msg:</span><span class="s">"VINSHARE API SQLi em parametro vin"</span>; \
+  http.uri; content:<span class="s">"vin="</span>; pcre:<span class="s">"/vin=[^&amp;]*('|%27)(\s|%20)*(or|union|--)/Ui"</span>; \
+  classtype:web-application-attack; <span class="k">sid:</span>9100004; rev:1;)
+
+<span class="c"># ---------- IoT ----------</span>
+<span class="r">alert</span> http $TCU_NET any -&gt; $VINSHARE_IOT 443 (<span class="k">msg:</span><span class="s">"VINSHARE IoT pico anomalo de telemetria por device"</span>; \
+  http.uri; content:<span class="s">"/v1/iot/telemetry"</span>; \
+  threshold:type both, track by_src, count 300, seconds 60; \
+  classtype:denial-of-service; <span class="k">sid:</span>9200001; rev:3;)
+
+<span class="r">alert</span> tls any any -&gt; $VINSHARE_IOT 443 (<span class="k">msg:</span><span class="s">"VINSHARE IoT certificado de cliente nao emitido pela CA Ford"</span>; \
+  tls.cert_issuer; content:!<span class="s">"CN=Ford VIN Share Device CA"</span>; \
+  classtype:policy-violation; <span class="k">sid:</span>9200002; rev:1;)
+
+<span class="c"># ---------- Mobile ----------</span>
+<span class="r">alert</span> http any any -&gt; $VINSHARE_API 443 (<span class="k">msg:</span><span class="s">"VINSHARE Mobile versao do app vulneravel (&lt; 2.3.0)"</span>; \
+  http.user_agent; pcre:<span class="s">"/VINShareApp\/(1\.|2\.[0-2]\.)/"</span>; \
+  classtype:policy-violation; <span class="k">sid:</span>9300001; rev:1;)</pre>
+
+  <h3>Gatilhos de alerta (Kibana Alerting)</h3>
+  <div class="tbl"><table>
+    <tr><th>ID</th><th>Área</th><th>Condição (sobre os logs)</th><th>Sev.</th><th>Ação</th></tr>
+    <tr><td>VS-API-001</td><td>API</td><td>≥ 10 <code>auth.login.failure</code> do mesmo IP em 1 min</td><td><span class="tag high">HIGH</span></td><td>Bloqueio temporário do IP no WAF + Teams</td></tr>
+    <tr><td>VS-API-002</td><td>API</td><td>≥ 5 usuários distintos com falha do mesmo IP em 5 min (<i>credential stuffing</i>)</td><td><span class="tag crit">CRIT</span></td><td>PagerDuty + PICERL</td></tr>
+    <tr><td>VS-API-003</td><td>API</td><td>≥ 3 <code>authz.access.denied</code> com <code>dealer_scope_violation</code> do mesmo usuário em 10 min (tentativa de BOLA)</td><td><span class="tag high">HIGH</span></td><td>Suspender sessão (denylist jti) + avisar gestor</td></tr>
+    <tr><td>VS-API-004</td><td>API</td><td><code>user.role.changed</code> para <code>admin</code> ou <code>config.critical.changed</code> fora do horário comercial</td><td><span class="tag high">HIGH</span></td><td>Validação com o autor + auditoria</td></tr>
+    <tr><td>VS-API-005</td><td>API</td><td><code>report:export</code> &gt; 5.000 registros ou &gt; 3 exportações/h por usuário</td><td><span class="tag med">MED</span></td><td>Revisão pelo DPO (LGPD)</td></tr>
+    <tr><td>VS-MOB-001</td><td>Mobile</td><td>&gt; 2% das sessões com <code>pinning_failure</code> em 15 min</td><td><span class="tag high">HIGH</span></td><td>Investigar MITM / proxy corporativo</td></tr>
+    <tr><td>VS-MOB-002</td><td>Mobile</td><td><code>root_detected=true</code> + acesso a PII</td><td><span class="tag med">MED</span></td><td>Bloquear PII nesse device</td></tr>
+    <tr><td>VS-IOT-001</td><td>IoT</td><td>Device &gt; 5× a cota (60 msg/min) <b>ou</b> &gt; 50% de payload rejeitado em 5 min</td><td><span class="tag crit">CRIT</span></td><td>Quarentena do device + PICERL</td></tr>
+    <tr><td>VS-IOT-002</td><td>IoT</td><td>Mesmo <code>device_id</code> conectado de 2 IPs/regiões simultaneamente (clonagem)</td><td><span class="tag crit">CRIT</span></td><td>Revogar certificado do TCU</td></tr>
+    <tr><td>VS-ML-001</td><td>ML</td><td>PSI &gt; 0,2 em qualquer feature (janela de 7 dias)</td><td><span class="tag med">MED</span></td><td>Revisão pelo time de dados; checar envenenamento</td></tr>
+    <tr><td>VS-ML-002</td><td>ML</td><td>Modelo carregado com hash fora da allowlist</td><td><span class="tag crit">CRIT</span></td><td>Rollback automático + PICERL</td></tr>
+    <tr><td>VS-ML-003</td><td>ML</td><td>&gt; 2.000 consultas de score/h por usuário (possível extração do modelo)</td><td><span class="tag med">MED</span></td><td>Throttle + revisão</td></tr>
+  </table></div>
+
+  <h2 id="picerl">Resposta a incidentes: SANS PICERL</h2>
+  <p>Adotamos as fases do framework SANS. Nesta entrega documentamos <b>Preparação, Identificação, Contenção, Erradicação e Recuperação</b>.</p>
+<pre class="mermaid">
+flowchart LR
+  P[1. Preparação<br/>playbooks, ELK,<br/>papéis, contatos] --> I[2. Identificação<br/>alerta, triagem,<br/>severidade]
+  I --> C[3. Contenção<br/>curto prazo: isolar<br/>longo prazo: paliativos]
+  C --> E[4. Erradicação<br/>remover causa raiz,<br/>corrigir e varrer]
+  E --> R[5. Recuperação<br/>restaurar, validar,<br/>monitorar reforçado]
+  R -.monitoramento contínuo.-> I
+</pre>
+
+  <div class="grid g2">
+    <div class="card"><h3>1. Preparação</h3><ul>
+      <li>Stack ELK com as regras de alerta desta página</li>
+      <li>Playbooks por cenário: credential stuffing, device IoT comprometido, vazamento de segredo, modelo adulterado, vazamento de PII</li>
+      <li>Papéis: líder de incidente (Admin Ford), time técnico dos hubs, DPO (LGPD), comunicação com concessionárias</li>
+      <li>Ferramentas prontas: denylist JWT, revogação de certificado TCU, rollback de modelo, rotação de chaves</li>
+      <li>Simulados (tabletop) trimestrais</li></ul></div>
+    <div class="card"><h3>2. Identificação</h3><ul>
+      <li>Origem: alerta ELK/IDS, report de concessionária ou achado de pipeline</li>
+      <li>Triagem: é falso positivo? Correlacionar pelo <code>trace_id</code>, IP e <code>device_id</code></li>
+      <li>Classificar a severidade (SEV1 a SEV4) e o escopo: quais hubs, concessionárias e clientes foram afetados</li>
+      <li>Abrir ticket e preservar evidências (snapshot dos índices)</li></ul></div>
+    <div class="card"><h3>3. Contenção</h3><ul>
+      <li><b>Curto prazo:</b> bloquear IP no WAF, colocar o device em quarentena, invalidar tokens (denylist <code>jti</code>), desativar o usuário</li>
+      <li><b>Longo prazo:</b> reduzir rate limit, exigir MFA extra, isolar o hub afetado da rede</li>
+      <li>Preservar os logs antes de qualquer mudança</li></ul></div>
+    <div class="card"><h3>4. Erradicação</h3><ul>
+      <li>Remover a causa raiz: corrigir o código (novo PR passando pelo Semgrep), rotacionar segredos, reemitir certificados</li>
+      <li>Varrer IoCs em todos os hubs e no histórico git (Trufflehog)</li>
+      <li>Criar ou ajustar a regra de detecção para o padrão observado</li></ul></div>
+    <div class="card" style="grid-column:1/-1"><h3>5. Recuperação</h3><ul>
+      <li>Restaurar os serviços de forma gradual (canário)</li>
+      <li>Validar a integridade: hash dos modelos e consistência dos Health Scores</li>
+      <li>Monitoramento reforçado por 7 dias com thresholds mais baixos</li>
+      <li>Comunicar concessionárias e, se houver dados pessoais envolvidos, ANPD e titulares (LGPD art. 48)</li></ul></div>
+  </div>
+
+  <h3>Incidente simulado: TCU clonado inundando o IoT ingest</h3>
+  <p class="muted">Linha do tempo de um incidente fictício disparado pelo alerta VS-IOT-001, o mesmo do dashboard acima.</p>
+  <button class="btn ghost" id="replay-tl">↻ Reproduzir linha do tempo</button>
+  <div class="tl" data-replay="replay-tl">
+    <div class="step"><span class="t">T-90d · PREPARAÇÃO</span><br>Playbook "Device IoT comprometido" publicado. Regra VS-IOT-001 ativa, CA de devices com CRL configurada e simulado executado.</div>
+    <div class="step"><span class="t">02:15 · IDENTIFICAÇÃO</span><br>O alerta <b>VS-IOT-001</b> dispara: TCU-9F21AB envia 1.840 msgs/min, 97% rejeitadas (odômetro impossível). A correlação no Kibana mostra o mesmo <code>device_id</code> conectado de São Paulo e de um IP externo (VS-IOT-002). Classificado como <b>SEV2</b>: device clonado, sem acesso a PII.</div>
+    <div class="step"><span class="t">02:22 · CONTENÇÃO</span><br>Device em quarentena (ingest descarta as mensagens), IP externo bloqueado no WAF e cota do endpoint IoT reduzida temporariamente. As predições do VIN afetado são congeladas para não alterar o Vehicle Health Score com dados falsos.</div>
+    <div class="step"><span class="t">03:40 · ERRADICAÇÃO</span><br>Certificado do TCU revogado (CRL) e novo certificado emitido para o device legítimo. A análise mostra a chave privada exportada de um TCU de bancada e, por isso, os certificados dos 12 devices de bancada também são revogados. Nova regra: bloquear <code>device_id</code> com sessões simultâneas.</div>
+    <div class="step"><span class="t">06:10 · RECUPERAÇÃO</span><br>Device legítimo reconectado. Os 214 pontos falsos são removidos do Behavior Hub e o Health Score do veículo é recalculado e validado. O monitoramento reforçado segue por 7 dias e o incidente é encerrado sem impacto a clientes.</div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

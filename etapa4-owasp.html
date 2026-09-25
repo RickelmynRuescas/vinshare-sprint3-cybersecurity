@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Etapa 4 · OWASP &amp; Riscos — VIN Share</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<main>
+  <span class="tag">Etapa 4 · peso 2,5</span>
+  <h1 style="margin-top:.6rem">Pesquisa de Vulnerabilidades: OWASP</h1>
+  <p class="lead">Documento consolidado com as quatro referências da OWASP aplicadas ao VIN Share, uma matriz que mapeia cada risco aos componentes do projeto, a análise de probabilidade × impacto e o plano de mitigação priorizado.</p>
+
+  <h2 id="pesquisa">Pesquisa: as quatro referências</h2>
+  <div class="grid g2">
+    <div class="card"><h3>OWASP Top 10 (2021)</h3><p class="muted">Os riscos mais críticos de aplicações web, baseados em dados reais de vulnerabilidades. No VIN Share se aplica ao <b>painel Streamlit</b> e aos serviços web dos hubs.</p></div>
+    <div class="card"><h3>OWASP API Security Top 10 (2023)</h3><p class="muted">Riscos específicos de APIs, onde a lógica de autorização por objeto domina. É a lista mais relevante para o projeto, porque <b>todos os hubs são expostos via API FastAPI</b>.</p></div>
+    <div class="card"><h3>OWASP Mobile Top 10 (2024)</h3><p class="muted">Riscos de apps móveis: armazenamento local, comunicação, credenciais e integridade do binário. Aplica-se ao <b>app Ford já existente</b>: o VIN Share não cria um app isolado, mas o app atual passa a consumir os hubs (Vehicle Health Score, lembretes, ofertas). Os controles valem para essa integração.</p></div>
+    <div class="card"><h3>OWASP ASVS 4.0.3</h3><p class="muted">Não é uma lista de riscos, e sim um <b>padrão de verificação</b> com requisitos testáveis em 3 níveis. Adotamos o <b>nível 2</b> (aplicações com dados sensíveis/PII) como critério de aceite dos controles.</p></div>
+  </div>
+
+  <div class="note"><b>Versões adotadas:</b> usamos o <b>OWASP Top 10 2021</b> e o <b>ASVS 4.0.3</b> por serem as versões mais difundidas em ferramentas (Semgrep <code>p/owasp-top-ten</code>, scanners, relatórios) e em material de referência. Já existem versões mais novas, o <b>OWASP Top 10 2025</b> e o <b>ASVS 5.0</b>. A migração do mapeamento para elas está prevista no plano de segurança contínua. API Top 10 (2023) e Mobile Top 10 (2024) já estão nas versões atuais.</div>
+
+  <h3>OWASP Top 10: aplicação ao VIN Share</h3>
+  <div class="tbl"><table>
+    <tr><th>ID</th><th>Risco</th><th>Como aparece no VIN Share</th></tr>
+    <tr><td>A01</td><td>Broken Access Control</td><td>Consultor acessando clientes de outra concessionária; gestor exportando dados fora da sua região</td></tr>
+    <tr><td>A02</td><td>Cryptographic Failures</td><td>PII em texto puro no SQLite; HTTP entre hubs; hash MD5 de senha</td></tr>
+    <tr><td>A03</td><td>Injection</td><td>SQL injection via parâmetro <code>vin</code> no Customer 360 (achado Semgrep)</td></tr>
+    <tr><td>A04</td><td>Insecure Design</td><td>Campanha em massa sem limite nem aprovação, permitindo spam para toda a base</td></tr>
+    <tr><td>A05</td><td>Security Misconfiguration</td><td>FastAPI com <code>debug=True</code>, <code>/docs</code> exposto em prod, CORS <code>*</code></td></tr>
+    <tr><td>A06</td><td>Vulnerable Components</td><td>Dependências Python desatualizadas (python-jose, starlette), tratado via SCA</td></tr>
+    <tr><td>A07</td><td>Identification &amp; Auth Failures</td><td>Login sem rate limit; JWT sem expiração</td></tr>
+    <tr><td>A08</td><td>Software &amp; Data Integrity</td><td><code>joblib.load</code> de modelo sem verificação; pipeline sem assinatura de imagem</td></tr>
+    <tr><td>A09</td><td>Logging &amp; Monitoring Failures</td><td>Ausência de log de acesso a PII; CPF em log de campanha</td></tr>
+    <tr><td>A10</td><td>SSRF</td><td>Webhook de status de mensagem (WhatsApp) com URL configurável pelo gestor</td></tr>
+  </table></div>
+
+  <h3>OWASP API Security Top 10 (2023)</h3>
+  <div class="tbl"><table>
+    <tr><th>ID</th><th>Risco</th><th>Como aparece no VIN Share</th></tr>
+    <tr><td>API1</td><td>Broken Object Level Authorization (BOLA)</td><td><code>GET /v1/customers/{id}</code> trocando o ID de um cliente de outra concessionária</td></tr>
+    <tr><td>API2</td><td>Broken Authentication</td><td>JWT sem verificação de assinatura; brute force no login</td></tr>
+    <tr><td>API3</td><td>Broken Object Property Level Authorization</td><td>Resposta devolvendo CPF completo; <i>mass assignment</i> de <code>role</code> no PATCH de usuário</td></tr>
+    <tr><td>API4</td><td>Unrestricted Resource Consumption</td><td>TCU inundando o ingest; exportações gigantes; custo por mensagem enviada (WhatsApp/SMS)</td></tr>
+    <tr><td>API5</td><td>Broken Function Level Authorization</td><td>Consultor chamando <code>POST /v1/campaigns</code> ou <code>/admin/models/deploy</code></td></tr>
+    <tr><td>API6</td><td>Unrestricted Access to Sensitive Business Flows</td><td>Automação do endpoint de score para raspar Health Scores de toda a frota</td></tr>
+    <tr><td>API7</td><td>Server Side Request Forgery</td><td>URL de webhook ou de import de dados apontando para a rede interna</td></tr>
+    <tr><td>API8</td><td>Security Misconfiguration</td><td>Headers ausentes, stack traces, TLS fraco</td></tr>
+    <tr><td>API9</td><td>Improper Inventory Management</td><td>Endpoint <code>/v0</code> legado ainda ativo sem RBAC; ambientes de staging com dados reais</td></tr>
+    <tr><td>API10</td><td>Unsafe Consumption of APIs</td><td>Confiar cegamente nas respostas dos sistemas legados Ford e da API do WhatsApp</td></tr>
+  </table></div>
+
+  <h3>OWASP Mobile Top 10 (2024)</h3>
+  <div class="tbl"><table>
+    <tr><th>ID</th><th>Risco</th><th>Como aparece no app VIN Share</th></tr>
+    <tr><td>M1</td><td>Improper Credential Usage</td><td>Chave de API embutida no APK; token em SharedPreferences</td></tr>
+    <tr><td>M2</td><td>Inadequate Supply Chain Security</td><td>SDKs de terceiros (analytics, push) sem avaliação</td></tr>
+    <tr><td>M3</td><td>Insecure Authentication/Authorization</td><td>Autorização checada só no app, sem verificação no backend</td></tr>
+    <tr><td>M4</td><td>Insufficient Input/Output Validation</td><td>Deep link <code>vinshare://vehicle?vin=</code> sem validação</td></tr>
+    <tr><td>M5</td><td>Insecure Communication</td><td>Sem certificate pinning, permitindo MITM em Wi-Fi de concessionária</td></tr>
+    <tr><td>M6</td><td>Inadequate Privacy Controls</td><td>Coleta de localização sem consentimento (LGPD)</td></tr>
+    <tr><td>M7</td><td>Insufficient Binary Protections</td><td>APK sem ofuscação, facilitando engenharia reversa da API</td></tr>
+    <tr><td>M8</td><td>Security Misconfiguration</td><td><code>android:debuggable</code>, backup habilitado, cleartext traffic</td></tr>
+    <tr><td>M9</td><td>Insecure Data Storage</td><td>Histórico de serviços em SQLite local sem cifra</td></tr>
+    <tr><td>M10</td><td>Insufficient Cryptography</td><td>Criptografia caseira ou algoritmos obsoletos</td></tr>
+  </table></div>
+
+  <h3>ASVS nível 2: requisitos adotados</h3>
+  <div class="tbl"><table>
+    <tr><th>Capítulo</th><th>Requisito (resumo)</th><th>Controle no VIN Share</th></tr>
+    <tr><td>V2 Autenticação</td><td>2.2.1 anti-automação; 2.4.1 hash de senha resistente (Argon2/bcrypt)</td><td>Rate limit no login; Argon2id</td></tr>
+    <tr><td>V3 Sessão</td><td>3.3.1 logout invalida sessão; 3.5.3 tokens assinados e verificados</td><td>Denylist <code>jti</code>; JWT com algoritmo fixo</td></tr>
+    <tr><td>V4 Controle de acesso</td><td>4.1.3 menor privilégio; 4.2.1 proteção contra IDOR</td><td>RBAC + escopo por concessionária</td></tr>
+    <tr><td>V5 Validação</td><td>5.1.3 validação por allowlist; 5.3.4 queries parametrizadas</td><td>Pydantic strict; SQL com <code>?</code></td></tr>
+    <tr><td>V6 Criptografia</td><td>6.2.1 algoritmos aprovados; 6.4.1 gestão de chaves</td><td>Fernet/MultiFernet, chaves no cofre, rotação</td></tr>
+    <tr><td>V7 Logs</td><td>7.1.1 sem credenciais/PII em logs; 7.2.1 log de eventos de autenticação</td><td>Logs JSON mascarados + ELK</td></tr>
+    <tr><td>V8 Proteção de dados</td><td>8.3.4 dados sensíveis identificados e com política de retenção</td><td>Inventário de PII + retenção LGPD</td></tr>
+    <tr><td>V9 Comunicação</td><td>9.1.1 TLS em todas as conexões; 9.2.1 TLS entre serviços</td><td>TLS 1.2+, mTLS interno, pinning mobile</td></tr>
+    <tr><td>V10 Código malicioso</td><td>10.3.2 integridade de componentes e atualizações</td><td>Allowlist de hash de modelos; SCA; assinatura de imagem</td></tr>
+    <tr><td>V14 Configuração</td><td>14.1.1 build automatizado e seguro; 14.3.2 debug desligado em prod</td><td>security.yml + quality gate; <code>debug</code> por ambiente</td></tr>
+  </table></div>
+
+  <h2 id="matriz">Matriz de mapeamento</h2>
+  <p>Cada linha liga um risco do VIN Share às categorias OWASP das quatro listas e ao controle implementado ou planejado. O escore de risco é <b>probabilidade (1–3) × impacto (1–3)</b>.</p>
+  <div class="tbl"><table>
+    <tr><th>#</th><th>Risco no VIN Share</th><th>Componente</th><th>Top 10</th><th>API</th><th>Mobile</th><th>ASVS</th><th>P</th><th>I</th><th>Risco</th><th>Mitigação</th></tr>
+    <tr><td>R1</td><td>Consultor lê clientes de outra concessionária (BOLA)</td><td>Customer 360 API</td><td>A01</td><td>API1</td><td>M3</td><td>V4.2.1</td><td>3</td><td>3</td><td><span class="tag crit">9</span></td><td>RBAC + <code>enforce_dealer_scope</code> + alerta VS-API-003 (<a href="etapa2-codigo-infra.html#rbac">E2</a>)</td></tr>
+    <tr><td>R2</td><td>Vazamento de PII da base (dump do SQLite)</td><td>Dados / C360</td><td>A02</td><td>API3</td><td>M9</td><td>V6, V8</td><td>2</td><td>3</td><td><span class="tag crit">6</span></td><td>Fernet por campo + blind index + backups cifrados (<a href="etapa2-codigo-infra.html#cripto">E2</a>)</td></tr>
+    <tr><td>R3</td><td>Token de canal (WhatsApp/SendGrid) vazado no git</td><td>Engagement Hub</td><td>A07</td><td>API8</td><td>M1</td><td>V6.4.1</td><td>3</td><td>2</td><td><span class="tag crit">6</span></td><td>Trufflehog pre-commit + CI, cofre, rotação (<a href="etapa1-devsecops.html#trufflehog">E1</a>)</td></tr>
+    <tr><td>R4</td><td>Brute force / credential stuffing no painel</td><td>API Gateway</td><td>A07</td><td>API2</td><td>M3</td><td>V2.2.1</td><td>3</td><td>2</td><td><span class="tag crit">6</span></td><td>Rate limit, Argon2id, MFA admin, VS-API-001/002</td></tr>
+    <tr><td>R5</td><td>SQL injection via <code>vin</code></td><td>Customer 360</td><td>A03</td><td>API8</td><td>M4</td><td>V5.3.4</td><td>2</td><td>3</td><td><span class="tag crit">6</span></td><td>Query parametrizada + Pydantic + regra Semgrep + IDS sid 9100004</td></tr>
+    <tr><td>R6</td><td>Forja de JWT (alg none / sem verificação)</td><td>Auth</td><td>A07</td><td>API2</td><td>—</td><td>V3.5.3</td><td>2</td><td>3</td><td><span class="tag crit">6</span></td><td>Algoritmo fixo, exp/iss/aud, segredo forte, sid 9100002</td></tr>
+    <tr><td>R7</td><td>Modelo de ML adulterado (pickle RCE)</td><td>Prediction Hub</td><td>A08</td><td>API10</td><td>—</td><td>V10.3.2</td><td>1</td><td>3</td><td><span class="tag high">3</span></td><td>Allowlist de hash, MFA em <code>model:deploy</code>, VS-ML-002</td></tr>
+    <tr><td>R8</td><td>TCU clonado envia telemetria falsa (DoS / envenenamento do score)</td><td>IoT / Behavior Hub</td><td>A04</td><td>API4</td><td>—</td><td>V5.1.3</td><td>2</td><td>2</td><td><span class="tag high">4</span></td><td>mTLS por device, cota por device, validação física, VS-IOT-001/002</td></tr>
+    <tr><td>R9</td><td>Scraping do Health Score de toda a frota</td><td>Vehicle API</td><td>A04</td><td>API6</td><td>M7</td><td>V2.2.1</td><td>2</td><td>2</td><td><span class="tag high">4</span></td><td>Rate limit por usuário, escopo por concessionária, sid 9100003, VS-ML-003</td></tr>
+    <tr><td>R10</td><td>Spam em massa por abuso de campanha</td><td>Engagement Hub</td><td>A04</td><td>API5</td><td>—</td><td>V4.1.3</td><td>1</td><td>3</td><td><span class="tag high">3</span></td><td><code>campaign:manage</code> só para gestor/admin, limite diário, aprovação dupla</td></tr>
+    <tr><td>R11</td><td>MITM no app Ford ao consumir os hubs</td><td>App Ford (existente)</td><td>A02</td><td>—</td><td>M5</td><td>V9.1.1</td><td>2</td><td>2</td><td><span class="tag high">4</span></td><td>Certificate pinning, HSTS, VS-MOB-001</td></tr>
+    <tr><td>R12</td><td>Token/dados do VIN Share no armazenamento local do app</td><td>App Ford (existente)</td><td>A02</td><td>—</td><td>M9, M1</td><td>V8</td><td>2</td><td>2</td><td><span class="tag high">4</span></td><td>Keystore/Keychain, SQLCipher</td></tr>
+    <tr><td>R13</td><td>PII em logs</td><td>Todos os hubs</td><td>A09</td><td>—</td><td>M6</td><td>V7.1.1</td><td>2</td><td>1</td><td><span class="tag med">2</span></td><td><code>mask_pii()</code>, regra Semgrep, filtro no Logstash</td></tr>
+    <tr><td>R14</td><td>Dependência vulnerável</td><td>Todos</td><td>A06</td><td>API8</td><td>M2</td><td>V14</td><td>2</td><td>2</td><td><span class="tag high">4</span></td><td>SCA (pip-audit/Dependabot) + Trivy (pesquisado, <a href="etapa1-devsecops.html#sca">E1</a>)</td></tr>
+    <tr><td>R15</td><td>Debug / docs expostos em produção</td><td>API</td><td>A05</td><td>API8</td><td>M8</td><td>V14.3.2</td><td>2</td><td>1</td><td><span class="tag med">2</span></td><td>Config por ambiente + regra Semgrep <i>fastapi-debug</i></td></tr>
+  </table></div>
+
+  <h2 id="stride">Revisão STRIDE</h2>
+  <p>Como verificação cruzada da matriz, revisamos a arquitetura dos hubs pelo modelo de ameaças <b>STRIDE</b> (Microsoft), confirmando que cada categoria tem pelo menos um controle implementado.</p>
+  <div class="tbl"><table>
+    <tr><th>Categoria</th><th>Propriedade violada</th><th>Ameaça no VIN Share</th><th>Controle implementado</th><th>Onde</th></tr>
+    <tr><td><b>S</b>poofing</td><td>Autenticidade</td><td>Atacante se passa por consultor (credential stuffing) ou por um TCU (certificado clonado)</td><td>Argon2id + rate limit + MFA admin; mTLS por device; JWT assinado</td><td><a href="etapa2-codigo-infra.html#api">E2 · API</a></td></tr>
+    <tr><td><b>T</b>ampering</td><td>Integridade</td><td>Telemetria falsa alterando o Vehicle Health Score; modelo <code>.pkl</code> adulterado</td><td>Validação Pydantic strict; allowlist de hash SHA-256 dos modelos; Fernet autenticado (HMAC)</td><td><a href="etapa2-codigo-infra.html#api">E2</a> · <a href="etapa1-devsecops.html#semgrep">E1</a></td></tr>
+    <tr><td><b>R</b>epudiation</td><td>Não-repúdio</td><td>Gestor nega ter disparado uma campanha; admin nega alteração de perfil</td><td>Logs de auditoria JSON com <code>actor</code>, <code>trace_id</code> e MFA, em índice restrito com retenção de 1 ano</td><td><a href="etapa3-logs-incidentes.html#logs">E3 · Logs</a></td></tr>
+    <tr><td><b>I</b>nformation Disclosure</td><td>Confidencialidade</td><td>PII de clientes exposta via BOLA, dump do SQLite, logs ou segredo vazado</td><td>Escopo por concessionária; criptografia por campo; <code>mask_pii()</code>; Trufflehog</td><td><a href="etapa2-codigo-infra.html#rbac">E2 · RBAC</a> · <a href="etapa1-devsecops.html#trufflehog">E1</a></td></tr>
+    <tr><td><b>D</b>enial of Service</td><td>Disponibilidade</td><td>TCU inundando o ingest; brute force saturando o login</td><td>Rate limit por IP/usuário/device; regras VS-IOT-001 e sid 9200001; quarentena de device</td><td><a href="etapa3-logs-incidentes.html#alertas">E3 · Alertas</a></td></tr>
+    <tr><td><b>E</b>levation of Privilege</td><td>Autorização</td><td>Consultor chamando endpoints de gestor/admin; <i>mass assignment</i> de <code>role</code>; JWT <code>alg:none</code></td><td>RBAC com <code>require()</code>; <code>extra="forbid"</code>; algoritmo fixo; MFA em ações críticas</td><td><a href="etapa2-codigo-infra.html#rbac">E2 · RBAC</a></td></tr>
+  </table></div>
+
+  <h2 id="riscos">Análise de riscos (heatmap)</h2>
+  <p>Posicionamento dos riscos acima <b>antes</b> das mitigações:</p>
+  <div class="heat">
+    <div class="h"></div><div class="h">Impacto baixo (1)</div><div class="h">Impacto médio (2)</div><div class="h">Impacto alto (3)</div>
+    <div class="h">Prob. alta (3)</div><div class="h2"></div><div class="h3">R3 · R4</div><div class="h3">R1</div>
+    <div class="h">Prob. média (2)</div><div class="h1">R13 · R15</div><div class="h2">R8 · R9 · R11 · R12 · R14</div><div class="h3">R2 · R5 · R6</div>
+    <div class="h">Prob. baixa (1)</div><div class="h1"></div><div class="h1"></div><div class="h2">R7 · R10</div>
+  </div>
+  <p class="muted" style="margin-top:.8rem">O maior risco (R1, BOLA) reflete a natureza multi-concessionária do VIN Share: são 435 concessionárias compartilhando a mesma API, e uma falha de escopo expõe clientes entre concorrentes da própria rede.</p>
+
+  <h2 id="plano">Plano de mitigação</h2>
+  <div class="tbl"><table>
+    <tr><th>Prioridade</th><th>Riscos</th><th>Ação</th><th>Responsável</th><th>Prazo</th><th>Status</th></tr>
+    <tr><td><span class="tag crit">P1</span></td><td>R1</td><td>RBAC + escopo por concessionária em todos os endpoints; testes automatizados de BOLA</td><td>Time API</td><td>Sprint 3</td><td><span class="tag ok">feito</span></td></tr>
+    <tr><td><span class="tag crit">P1</span></td><td>R3</td><td>Trufflehog pre-commit + CI; rotação dos segredos encontrados; cofre de segredos</td><td>DevSecOps</td><td>Sprint 3</td><td><span class="tag ok">feito</span></td></tr>
+    <tr><td><span class="tag crit">P1</span></td><td>R5, R6</td><td>Queries parametrizadas; JWT endurecido; Semgrep bloqueante no CI</td><td>Time API</td><td>Sprint 3</td><td><span class="tag ok">feito</span></td></tr>
+    <tr><td><span class="tag crit">P1</span></td><td>R2, R4</td><td>Criptografia de PII; Argon2id; rate limit; MFA para admin</td><td>Time API / Dados</td><td>Sprint 3</td><td><span class="tag ok">feito</span></td></tr>
+    <tr><td><span class="tag high">P2</span></td><td>R8, R9</td><td>mTLS por TCU; cotas por device/usuário; regras de detecção IoT e scraping</td><td>Time IoT / SecOps</td><td>Sprint 4</td><td><span class="tag med">em andamento</span></td></tr>
+    <tr><td><span class="tag high">P2</span></td><td>R7</td><td>Allowlist de hash de modelos; MFA em deploy de modelo; alerta de drift</td><td>Time ML</td><td>Sprint 4</td><td><span class="tag med">em andamento</span></td></tr>
+    <tr><td><span class="tag high">P2</span></td><td>R11, R12</td><td>Pinning, Keystore/Keychain, SQLCipher, ofuscação (R8/ProGuard)</td><td>Time Mobile</td><td>Sprint 4</td><td><span class="tag">planejado</span></td></tr>
+    <tr><td><span class="tag high">P2</span></td><td>R14</td><td>Adotar pip-audit + Dependabot + Trivy no pipeline; gerar SBOM</td><td>DevSecOps</td><td>Sprint 4</td><td><span class="tag">planejado</span></td></tr>
+    <tr><td><span class="tag med">P3</span></td><td>R10</td><td>Limite diário de disparos e aprovação dupla para campanhas &gt; 10 mil contatos</td><td>Time Engagement</td><td>Sprint 5</td><td><span class="tag">planejado</span></td></tr>
+    <tr><td><span class="tag med">P3</span></td><td>R13, R15</td><td>Mascaramento de PII em logs; configuração por ambiente; revisão ASVS V7/V14</td><td>Todos</td><td>Contínuo</td><td><span class="tag ok">feito</span></td></tr>
+  </table></div>
+  <div class="note good"><b>Risco residual esperado:</b> após as ações P1 e P2, todos os riscos de escore 9 e 6 caem para ≤ 3 (probabilidade reduzida a 1). O que sobra é tratado com monitoramento contínuo (<a href="etapa3-logs-incidentes.html#alertas">Etapa 3</a>) e revalidação ASVS a cada release.</div>
+
+  <h2 id="continua">Plano de segurança contínua</h2>
+  <p>A segurança não termina na entrega da sprint. As rotinas abaixo mantêm os controles válidos à medida que o código, as dependências e a equipe mudam.</p>
+  <div class="tbl"><table>
+    <tr><th>Rotina</th><th>O que é feito</th><th>Periodicidade</th><th>Responsável</th><th>Evidência</th></tr>
+    <tr><td><b>Revisão de dependências (SCA)</b></td><td><code>pip-audit</code> + Dependabot no repositório; triagem das CVEs e atualização das libs; Trivy nas imagens</td><td>Semanal (agendado) + a cada PR</td><td>DevSecOps</td><td>Relatório SCA, PRs do Dependabot, SBOM</td></tr>
+    <tr><td><b>SAST e secret scanning</b></td><td>Semgrep e Trufflehog no pipeline, com quality gate bloqueante</td><td>A cada commit/PR</td><td>Automático (CI)</td><td>SARIF na aba Security, logs do Actions</td></tr>
+    <tr><td><b>Pentest</b></td><td>Teste de intrusão na API, na integração do app Ford e no endpoint IoT, guiado pelo OWASP API/Mobile Top 10 e ASVS L2</td><td>Semestral + após mudanças grandes de arquitetura</td><td>Empresa externa</td><td>Relatório de pentest e plano de correção</td></tr>
+    <tr><td><b>Auditoria de permissões (RBAC)</b></td><td>Recertificação dos usuários por concessionária: remover desligados, revisar gestores e admins, conferir escopos</td><td>Trimestral</td><td>Gestores + Admin Ford</td><td>Relatório de recertificação assinado</td></tr>
+    <tr><td><b>Backup e recuperação</b></td><td>Backups cifrados (AES-256) do banco e dos modelos, em local separado; <b>teste de restore</b> em ambiente isolado</td><td>Backup diário · teste de restore mensal</td><td>Time de Dados / Infra</td><td>Log do backup + checklist do restore (RTO/RPO)</td></tr>
+    <tr><td><b>Rotação de segredos</b></td><td>JWT secret, chaves Fernet (MultiFernet), tokens de WhatsApp/SMS/e-mail</td><td>Trimestral ou imediata em incidente</td><td>DevSecOps</td><td>Registro no cofre de segredos</td></tr>
+    <tr><td><b>Revisão das regras de alerta</b></td><td>Ajuste de thresholds, falsos positivos e novas regras a partir de incidentes</td><td>Mensal</td><td>SecOps</td><td>Changelog das regras ELK/IDS</td></tr>
+    <tr><td><b>Simulado de incidente</b></td><td>Tabletop dos playbooks PICERL (IoT, vazamento de PII, segredo vazado)</td><td>Trimestral</td><td>Todos os times</td><td>Ata do simulado</td></tr>
+    <tr><td><b>Revisão de conformidade</b></td><td>Revalidação da matriz OWASP/ASVS, migração para Top 10 2025 e ASVS 5.0, e revisão LGPD (inventário de PII, retenção)</td><td>Anual + a cada release maior</td><td>Segurança + DPO</td><td>Matriz atualizada</td></tr>
+  </table></div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

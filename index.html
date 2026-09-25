@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIN Share · Sprint 3 Cybersecurity</title>
+<meta name="description" content="Entrega da Sprint 3 (Cybersecurity) do Ford Challenge FIAP — VIN Share / Ford Customer 360">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<main>
+  <span class="tag">FIAP · Ford Challenge · Sprint 3</span>
+  <h1 style="margin-top:.6rem">Segurança do VIN Share / Ford Customer 360</h1>
+  <div class="note" style="max-width:820px"><b>O que é o VIN Share:</b> a métrica que mede o percentual da frota circulante de veículos Ford (VINs) que continua fazendo manutenção e revisões na rede de concessionárias autorizadas. Após o fim da garantia (3º ao 5º ano), até <b>60–70% da frota</b> migra para o mercado independente.</div>
+  <p class="lead">Entrega de Cybersecurity do projeto <b>VIN Share</b>: uma camada de inteligência sobre os sistemas existentes da Ford para aumentar a retenção pós-venda na rede de concessionárias autorizadas. Aqui documentamos como o projeto é protegido do código ao incidente: pipeline DevSecOps, hardening de código e infraestrutura, observabilidade e resposta, e mapeamento de riscos OWASP.</p>
+
+  <div class="card" style="margin:1.4rem 0">
+    <b>Turma 3ESPV</b>
+    <ul style="margin:.5rem 0 0;columns:2 260px">
+      <li>Heloísa Fleury Jardim — RM556378</li>
+      <li>Juan Fuentes Rufino — RM557673</li>
+      <li>Rickelmyn de Souza Ruescas — RM556055</li>
+      <li>Paulo Henrique Monteiro Golovanevsky — RM555300</li>
+      <li>Pedro Henrique Silva Batista — RM558137</li>
+    </ul>
+  </div>
+
+  <div class="note warn"><b>Nota:</b> todos os trechos de código, saídas de terminal, commits, logs e alertas deste site são <b>exemplos ilustrativos (mocados)</b>, construídos de forma coerente com a arquitetura do VIN Share. O objetivo é demonstrar o entendimento dos controles, não a operação de um sistema em produção.</div>
+
+  <h2>O projeto em números</h2>
+  <div class="grid">
+    <div class="card"><div class="num">602.788</div><small>registros de serviço</small></div>
+    <div class="card"><div class="num">175.554</div><small>veículos (VINs)</small></div>
+    <div class="card"><div class="num">435</div><small>concessionárias autorizadas</small></div>
+    <div class="card"><div class="num">0–1000</div><small>Vehicle &amp; Customer Health Score</small></div>
+  </div>
+  <p class="muted" style="margin-top:1rem">Esses dados incluem PII de clientes (nome, telefone, e-mail, CPF), histórico de serviço e telemetria veicular. Por isso estão sujeitos à LGPD e são um alvo valioso, o que justifica tratar segurança como requisito de produto e não como etapa final.</p>
+
+  <h2>Arquitetura e superfície de ataque</h2>
+  <p>Os quatro hubs expõem APIs (FastAPI) consumidas pelo painel das concessionárias (Streamlit), pelo <b>app Ford já existente</b> (que passa a consumir a camada de inteligência, sem criar um app novo) e pelos canais de engajamento. Os pontos em vermelho são as principais superfícies de ataque tratadas nesta sprint.</p>
+<pre class="mermaid">
+flowchart LR
+  subgraph EXT[Fontes e clientes]
+    IOT[Telemetria IoT / TCU]:::risk
+    APP[App Ford existente<br/>consome os hubs]:::risk
+    DLR[Painel concessionária<br/>Streamlit]:::risk
+  end
+  GW[API Gateway FastAPI<br/>JWT + RBAC + rate limit]:::risk
+  subgraph HUBS[VIN Share]
+    C360[Customer 360 Hub]
+    BEH[Behavior Intelligence Hub]
+    PRED[Prediction Hub<br/>modelos scikit-learn]:::risk
+    ENG[Engagement and<br/>Recommendation Hub]
+  end
+  DB[(SQLite / Data Lake<br/>PII criptografada)]:::risk
+  CH[WhatsApp / SMS / E-mail]:::risk
+  SIEM[ELK - logs e alertas]
+  IOT --> GW
+  APP --> GW
+  DLR --> GW
+  GW --> C360 & BEH & PRED & ENG
+  C360 --> DB
+  BEH --> DB
+  PRED --> DB
+  ENG --> CH
+  GW -.logs.-> SIEM
+  HUBS -.logs.-> SIEM
+  classDef risk stroke:#f85149,stroke-width:2px
+</pre>
+
+  <div class="note"><b>IoT / telemetria:</b> o projeto evolui em três fases: <b>Batch/Histórico → Comportamental Digital → Telemetria Conectada</b>. A telemetria de veículos conectados é a fase 3. Os controles de IoT deste site (mTLS por TCU, cota por device, validação física dos dados, alertas VS-IOT) foram desenhados antecipando essa fase, para que ela já nasça segura.</div>
+
+  <h2>Etapas da entrega</h2>
+  <div class="grid g2">
+    <a class="card" href="etapa1-devsecops.html"><span class="tag">peso 3,0</span><h3>1 · Pipeline DevSecOps &amp; Análise de Código</h3><p class="muted">SSDLC/shift-left, Semgrep (SAST), Trufflehog (pre-commit + GitHub Actions), pesquisa sobre SCA e Container Security, diagrama CI/CD.</p></a>
+    <a class="card" href="etapa2-codigo-infra.html"><span class="tag">peso 2,5</span><h3>2 · Segurança em Código e Infraestrutura</h3><p class="muted">Criptografia local, hardening de API (rate limit, validação, JWT) e RBAC com os perfis Consultor de Serviço, Gestor e Administrador.</p></a>
+    <a class="card" href="etapa3-logs-incidentes.html"><span class="tag">peso 2,0</span><h3>3 · Logs, Alertas e Resposta a Incidentes</h3><p class="muted">Logs JSON estruturados, stack ELK, regras de alerta no estilo Suricata e fluxo SANS PICERL.</p></a>
+    <a class="card" href="etapa4-owasp.html"><span class="tag">peso 2,5</span><h3>4 · Pesquisa de Vulnerabilidades (OWASP)</h3><p class="muted">OWASP Top 10, API Top 10, Mobile Top 10 e ASVS, com matriz de mapeamento, análise de riscos e plano de mitigação.</p></a>
+  </div>
+
+  <h2>Checklist de conformidade da entrega</h2>
+  <div class="tbl"><table>
+    <tr><th>Etapa</th><th>Entregável esperado</th><th>Onde está</th><th>Status</th></tr>
+    <tr><td>1</td><td>Varreduras SAST com Semgrep e regras aplicadas</td><td><a href="etapa1-devsecops.html#semgrep">Etapa 1 · Semgrep</a></td><td class="y">✔</td></tr>
+    <tr><td>1</td><td>Secret scanning com Trufflehog</td><td><a href="etapa1-devsecops.html#trufflehog">Etapa 1 · Trufflehog</a></td><td class="y">✔</td></tr>
+    <tr><td>1</td><td>Diagrama CI/CD com pontos de execução</td><td><a href="etapa1-devsecops.html#cicd">Etapa 1 · CI/CD</a></td><td class="y">✔</td></tr>
+    <tr><td>1</td><td>Pesquisa SCA e Container Security</td><td><a href="etapa1-devsecops.html#sca">Etapa 1 · SCA/Containers</a></td><td class="y">✔</td></tr>
+    <tr><td>2</td><td>Criptografia local</td><td><a href="etapa2-codigo-infra.html#cripto">Etapa 2 · Criptografia</a></td><td class="y">✔</td></tr>
+    <tr><td>2</td><td>Hardening de API: rate limit, validação e JWT</td><td><a href="etapa2-codigo-infra.html#api">Etapa 2 · API</a></td><td class="y">✔</td></tr>
+    <tr><td>2</td><td>Controle de acesso por perfil (RBAC)</td><td><a href="etapa2-codigo-infra.html#rbac">Etapa 2 · RBAC</a></td><td class="y">✔</td></tr>
+    <tr><td>2</td><td>Commits e explicações técnicas</td><td><a href="etapa2-codigo-infra.html#commits">Etapa 2 · Commits</a></td><td class="y">✔</td></tr>
+    <tr><td>3</td><td>Exemplos de logs estruturados</td><td><a href="etapa3-logs-incidentes.html#logs">Etapa 3 · Logs</a></td><td class="y">✔</td></tr>
+    <tr><td>3</td><td>Regras e gatilhos de alertas (API, mobile, IoT, ML)</td><td><a href="etapa3-logs-incidentes.html#alertas">Etapa 3 · Alertas</a></td><td class="y">✔</td></tr>
+    <tr><td>3</td><td>Fluxo de resposta a incidentes (PICERL)</td><td><a href="etapa3-logs-incidentes.html#picerl">Etapa 3 · PICERL</a></td><td class="y">✔</td></tr>
+    <tr><td>4</td><td>Pesquisa OWASP Top 10, API, Mobile e ASVS</td><td><a href="etapa4-owasp.html#pesquisa">Etapa 4 · Pesquisa</a></td><td class="y">✔</td></tr>
+    <tr><td>4</td><td>Matriz de mapeamento</td><td><a href="etapa4-owasp.html#matriz">Etapa 4 · Matriz</a></td><td class="y">✔</td></tr>
+    <tr><td>4</td><td>Revisão STRIDE (modelagem de ameaças)</td><td><a href="etapa4-owasp.html#stride">Etapa 4 · STRIDE</a></td><td class="y">✔</td></tr>
+    <tr><td>4</td><td>Análise de riscos e plano de mitigação</td><td><a href="etapa4-owasp.html#plano">Etapa 4 · Plano</a></td><td class="y">✔</td></tr>
+    <tr><td>4</td><td>Plano de segurança contínua (SCA, testes, auditoria RBAC, backup)</td><td><a href="etapa4-owasp.html#continua">Etapa 4 · Segurança contínua</a></td><td class="y">✔</td></tr>
+  </table></div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
