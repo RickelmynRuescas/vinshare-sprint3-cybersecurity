@@ -319,6 +319,8 @@ summary:focus-visible,.btn:focus-visible,button:focus-visible{outline:2px solid 
 header.nav{view-transition-name:navbar}
 .hero .num{view-transition-name:stagenum}
 ::view-transition-group(navbar),::view-transition-old(navbar),::view-transition-new(navbar){animation:none}
+/* a foto antiga da navbar (com o sublinhado no item anterior) não aparece: só a nova, ao vivo, com o sublinhado caminhando */
+::view-transition-old(navbar){display:none}
 /* conteúdo: sai reduzindo (1 → .97) e entra vindo de levemente maior (1.02 → 1), com fade */
 ::view-transition-old(root){animation:vt-zoom-out .36s cubic-bezier(.4,0,.2,1) both}
 ::view-transition-new(root){animation:vt-zoom-in .4s cubic-bezier(.2,.7,.2,1) .04s both}
