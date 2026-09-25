@@ -39,7 +39,7 @@ flowchart TD
   </div>
 
   <h2 id="cicd">Diagrama do pipeline CI/CD</h2>
-  <p>Pontos de execução do <b>Trufflehog</b> e do <b>Semgrep</b>. Tracejado: SCA e Container Security, pesquisados e posicionados, sem aplicação nesta sprint.</p>
+  <p>Pontos de execução do <b>Trufflehog</b>, do <b>Semgrep</b> e do <b>IaC scan</b>. Tracejado: SCA e Container Security, pesquisados e posicionados, sem aplicação nesta sprint.</p>
 <pre class="mermaid">
 flowchart TD
   DEV[Dev escreve código<br/>API / ML / Streamlit] --> PC{pre-commit hook}
@@ -49,8 +49,9 @@ flowchart TD
   PUSH --> GA[GitHub Actions<br/>security.yml]
   GA --> J1[Job 1: Trufflehog<br/>histórico git completo]:::sec
   GA --> J2[Job 2: Semgrep SAST<br/>regras oficiais<br/>+ regras VIN Share]:::sec
-  GA -.-> J3[Job 3: SCA<br/>pip-audit<br/>Dependabot]:::fut
-  J1 & J2 & J3 --> GATE{Quality gate<br/>CRITICAL/HIGH ou<br/>segredo verificado?}
+  GA --> JI[Job 3: IaC scan<br/>Hadolint + Checkov]:::sec
+  GA -.-> J3[Job 4: SCA<br/>pip-audit<br/>Dependabot]:::fut
+  J1 & J2 & JI & J3 --> GATE{Quality gate<br/>CRITICAL/HIGH, segredo<br/>ou falha de IaC?}
   GATE -->|sim| BLK2[PR bloqueado<br/>SARIF no GitHub Security]:::bad
   GATE -->|não| BUILD[Build imagem Docker<br/>FastAPI + Streamlit]
   BUILD -.-> J4[Trivy: scan de imagem]:::fut
@@ -69,6 +70,7 @@ flowchart TD
       <div class="stage" data-id="checkout"><b>checkout</b>fetch-depth: 0</div>
       <div class="stage" data-id="secrets"><b>Trufflehog</b>secret scan</div>
       <div class="stage" data-id="sast"><b>Semgrep</b>SAST</div>
+      <div class="stage" data-id="iac"><b>IaC scan</b>lint IaC</div>
       <div class="stage" data-id="test"><b>pytest</b>unit tests</div>
       <div class="stage" data-id="build"><b>docker build</b>api + dash</div>
       <div class="stage" data-id="deploy"><b>deploy</b>staging</div>
@@ -302,9 +304,10 @@ Ran 1.187 rules on 214 files: <span class="r">6 findings (3 blocking)</span>.</p
   <h2 id="actions">Workflow do GitHub Actions</h2>
   <div class="split">
     <div>
-      <p>Em cada <code>push</code>/<code>pull_request</code> para <code>main</code>/<code>develop</code>: Trufflehog e Semgrep em paralelo.</p>
+      <p>Em cada <code>push</code>/<code>pull_request</code> para <code>main</code>/<code>develop</code>: Trufflehog, Semgrep e IaC scan em paralelo.</p>
       <ul>
-        <li>Build só roda se ambos passarem (<code>needs:</code>).</li>
+        <li>Job <code>iac-scan</code> (Hadolint + Checkov) valida Dockerfile e IaC (<a href="etapa2-codigo-infra.html#infra">Etapa 2</a>).</li>
+        <li>Build só roda se os três jobs passarem (<code>needs:</code>).</li>
         <li>Resultado do Semgrep vai em SARIF para a aba <i>Security</i>.</li>
         <li>Segredos de deploy vêm de <code>secrets.*</code>, nunca do código.</li>
       </ul>
@@ -346,7 +349,8 @@ Ran 1.187 rules on 214 files: <span class="r">6 findings (3 blocking)</span>.</p
         <span class="k">run:</span> |
           semgrep scan \
             --config p/python --config p/owasp-top-ten --config p/jwt \
-            --config p/dockerfile --config .semgrep/vinshare.yml \
+            --config p/dockerfile --config p/docker-compose \
+            --config .semgrep/vinshare.yml \
             --sarif --output semgrep.sarif \
             --severity ERROR --error        <span class="c"># ERROR bloqueia o job</span>
       - <span class="k">name:</span> Upload SARIF
@@ -355,9 +359,19 @@ Ran 1.187 rules on 214 files: <span class="r">6 findings (3 blocking)</span>.</p
         <span class="k">with:</span>
           <span class="k">sarif_file:</span> semgrep.sarif
 
+  <span class="k">iac-scan:</span>
+    <span class="k">name:</span> IaC — Hadolint + Checkov
+    <span class="k">runs-on:</span> ubuntu-latest
+    <span class="k">steps:</span>
+      - <span class="k">uses:</span> actions/checkout@v4
+      - <span class="k">uses:</span> hadolint/hadolint-action@v3.1.0
+        <span class="k">with:</span> { <span class="k">dockerfile:</span> Dockerfile, <span class="k">failure-threshold:</span> error }
+      - <span class="k">uses:</span> bridgecrewio/checkov-action@v12
+        <span class="k">with:</span> { <span class="k">directory:</span> ., <span class="k">framework:</span> dockerfile, <span class="k">soft_fail:</span> false }
+
   <span class="k">build-and-deploy:</span>
     <span class="k">name:</span> Build &amp; deploy (staging)
-    <span class="k">needs:</span> [secret-scan, sast]   <span class="c"># quality gate: só roda se os dois passarem</span>
+    <span class="k">needs:</span> [secret-scan, sast, iac-scan]   <span class="c"># quality gate: só roda se os três passarem</span>
     <span class="k">if:</span> github.ref == 'refs/heads/main'
     <span class="k">runs-on:</span> ubuntu-latest
     <span class="k">environment:</span> staging

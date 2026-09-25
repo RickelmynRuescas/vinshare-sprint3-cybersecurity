@@ -494,7 +494,7 @@ $ mosquitto_pub ... -t vinshare/telemetry/TCU-00A1C3 -f ponto.json
     <tr><td><b>Semgrep <code>p/dockerfile</code> + <code>p/docker-compose</code></b></td><td>Padrões inseguros em Dockerfile e docker-compose</td><td>segredo em <code>ENV</code>, <code>ADD</code> com URL remota, serviço <code>privileged</code> ou sem <code>no-new-privileges</code>/<code>read_only</code></td><td>job SAST do <code>security.yml</code> (<a href="etapa1-devsecops.html#actions">Etapa 1</a>)</td></tr>
     <tr><td><b>Checkov</b></td><td>Dockerfile e (futuro) Terraform/Kubernetes</td><td>CKV_DOCKER_2: sem HEALTHCHECK; CKV_DOCKER_3: sem USER não-root</td><td>job <code>iac-scan</code> no CI</td></tr>
   </table></div>
-<pre class="code"><span class="c"># trecho adicionado ao .github/workflows/security.yml</span>
+<pre class="code"><span class="c"># trecho do .github/workflows/security.yml (workflow completo na Etapa 1)</span>
   <span class="k">iac-scan:</span>
     <span class="k">runs-on:</span> ubuntu-latest
     <span class="k">steps:</span>
