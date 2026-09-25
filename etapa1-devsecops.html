@@ -123,7 +123,7 @@ flowchart TD
   <p class="muted">Dois cenários: PR limpo e PR com o token do WhatsApp hardcoded no Engagement Hub.</p>
   <div class="card box" data-pipe>
     <div class="pipe">
-      <div class="stage" data-id="checkout"><b>checkout</b>fetch-depth: 0</div>
+      <div class="stage" data-id="checkout" title="fetch-depth: 0 (histórico completo)"><b>checkout</b>histórico</div>
       <div class="stage" data-id="secrets"><b>Trufflehog</b>secret scan</div>
       <div class="stage" data-id="sast"><b>Semgrep</b>SAST</div>
       <div class="stage" data-id="iac"><b>IaC scan</b>lint IaC</div>
@@ -131,9 +131,9 @@ flowchart TD
       <div class="stage" data-id="build"><b>docker build</b>api + dash</div>
       <div class="stage" data-id="deploy"><b>deploy</b>staging</div>
     </div>
-    <button class="btn" data-scn="ok">▶ PR limpo</button>
-    <button class="btn ghost" data-scn="leak">▶ PR com segredo vazado</button>
-    <p class="pipe-out" style="margin:.8rem 0 0;font-family:var(--mono);font-size:.88rem"></p>
+    <button class="btn" data-scn="ok" aria-pressed="false">▶ PR limpo</button>
+    <button class="btn ghost" data-scn="leak" aria-pressed="false">▶ PR com segredo vazado</button>
+    <p class="pipe-out" role="status" aria-live="polite" style="margin:.8rem 0 0;font-family:var(--mono);font-size:.88rem"></p>
   </div>
 
   <h2 id="trufflehog">Secret Scanning com Trufflehog</h2>

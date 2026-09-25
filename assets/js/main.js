@@ -230,31 +230,39 @@ document.querySelectorAll('pre[data-type]').forEach(pre => {
 });
 
 // Simulação do pipeline (Etapa 1)
+// Cada clique reinicia do zero: cancela os timers da execução anterior, zera cards e mensagem.
 document.querySelectorAll('[data-pipe]').forEach(box => {
   const stages = [...box.querySelectorAll('.stage')];
   const out = box.querySelector('.pipe-out');
-  box.querySelectorAll('button[data-scn]').forEach(b => b.onclick = () => {
-    const failAt = b.dataset.scn === 'leak' ? stages.findIndex(s => s.dataset.id === 'secrets') : -1;
+  const btns = [...box.querySelectorAll('button[data-scn]')];
+  let timers = [];
+  const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+  const reset = () => {
+    timers.forEach(clearTimeout);
+    timers = [];
     stages.forEach(s => s.className = 'stage');
-    box.querySelectorAll('button').forEach(x => x.disabled = true);
-    out.textContent = '';
+    out.innerHTML = '';
+    btns.forEach(x => { x.classList.remove('running'); x.setAttribute('aria-pressed', 'false'); });
+  };
+  btns.forEach(b => b.addEventListener('click', () => {
+    reset();
+    b.classList.add('running');
+    b.setAttribute('aria-pressed', 'true');
+    const failAt = b.dataset.scn === 'leak' ? stages.findIndex(s => s.dataset.id === 'secrets') : -1;
+    const done = html => { out.innerHTML = html; b.classList.remove('running'); };
     let i = 0;
     const next = () => {
       if (i > 0) stages[i - 1].className = 'stage ' + (i - 1 === failAt ? 'fail' : 'pass');
-      if (i - 1 === failAt) {
-        stages.slice(i).forEach(s => s.className = 'stage skip');
-        out.innerHTML = '<span class="r">✖ Pipeline bloqueado:</span> Trufflehog encontrou segredo VERIFICADO (WhatsApp Cloud API token) em <code>engagement_hub/channels/whatsapp.py:14</code>. Deploy cancelado.';
-        return box.querySelectorAll('button').forEach(x => x.disabled = false);
+      if (i > 0 && i - 1 === failAt) {
+        stages.slice(i).forEach(s => s.className = 'stage skip');     // só os seguintes, depois do bloqueio
+        return done('<span class="r">✖ Pipeline bloqueado:</span> Trufflehog encontrou segredo VERIFICADO (WhatsApp Cloud API token) em <code>engagement_hub/channels/whatsapp.py:14</code>. Deploy cancelado.');
       }
-      if (i >= stages.length) {
-        out.innerHTML = '<span class="g">✔ Todos os gates passaram.</span> Imagem assinada e publicada em staging.';
-        return box.querySelectorAll('button').forEach(x => x.disabled = false);
-      }
+      if (i >= stages.length) return done('<span class="g">✔ Todos os gates passaram.</span> Imagem assinada e publicada em staging.');
       stages[i++].className = 'stage run';
-      setTimeout(next, 900);
+      later(next, 900);
     };
-    next();
-  });
+    later(next, 120);                                                 // o estado neutro aparece antes de recomeçar
+  }));
 });
 
 // Stream de logs estruturados (Etapa 3)

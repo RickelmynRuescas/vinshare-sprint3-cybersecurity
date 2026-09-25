@@ -136,9 +136,12 @@ td.y,td.n{font-weight:600;font-family:var(--mono)}td.y{color:var(--ok)}td.n{colo
 .cmp{margin-bottom:1.8rem;align-items:start}
 
 /* pipeline animado */
-.pipe{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:0 0 1rem}
-.stage{flex:1 1 120px;border:1px solid var(--line);border-radius:var(--r);padding:.55rem;text-align:center;font:.78rem var(--mono);color:var(--tx2);transition:all .3s;background:var(--bg)}
-.stage b{display:block;font-size:.85rem;color:var(--tx)}
+.pipe{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.4rem;align-items:stretch;margin:0 0 1rem}
+@media (max-width:900px){.pipe{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:560px){.pipe{grid-template-columns:repeat(7,128px);overflow-x:auto;padding-bottom:.4rem}}
+.stage{min-width:0;border:1px solid var(--line);border-radius:var(--r);padding:.55rem;text-align:center;font:.72rem var(--mono);color:var(--tx2);transition:all .3s;background:var(--bg)}
+.stage b{display:block;font-size:.8rem;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stage::after{content:"\00a0";display:block}   /* linha de status reservada: o card não muda de altura */
 .stage.run{border-color:var(--warn)}
 .stage.run::after{content:"⟳ executando";display:block;color:var(--warn)}
 .stage.pass{border-color:var(--ok)}.stage.pass::after{content:"✔ passou";display:block;color:var(--ok)}
@@ -398,3 +401,7 @@ footer p{margin:.15rem 0}
 /* número grande: contagem estilo odômetro ao trocar de página */
 .hero .num{overflow:hidden;height:1em}
 .hero .num .d{display:block}
+
+/* simulação do pipeline: botão do cenário em execução em destaque */
+[data-pipe] .btn.running{box-shadow:0 0 0 2px var(--warn);border-color:var(--warn)}
+[data-pipe] .btn.running::after{content:" · executando";color:var(--warn)}
