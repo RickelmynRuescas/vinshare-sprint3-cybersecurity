@@ -18,7 +18,6 @@ const WALK_STEP = 160;   // ms por item: sublinhado da navbar e contagem do núm
     pages.map((p, i) => i === cur
       ? `<li><a href="${p[0]}" class="active" aria-current="page">${p[1]}</a></li>`
       : `<li><a href="${p[0]}">${p[1]}</a></li>`).join('')}</ul></div>`;
-  nav.insertAdjacentHTML('beforeend', '<div class="progress"></div>');
   document.body.prepend(nav);
   // altura real da navbar (usada pelo índice sticky e pelo scroll-margin das âncoras)
   const setNavH = () => document.documentElement.style.setProperty('--navh', nav.offsetHeight + 'px');
@@ -86,16 +85,6 @@ const WALK_STEP = 160;   // ms por item: sublinhado da navbar e contagem do núm
   const f = document.createElement('footer');
   f.innerHTML = '<p>FIAP · Ford Challenge · Sprint 3 — Cybersecurity · Turma 3ESPV</p>';
   document.body.append(f);
-
-  // barra de progresso de leitura
-  const bar = nav.querySelector('.progress');
-  const upd = () => {
-    const h = document.documentElement.scrollHeight - innerHeight;
-    bar.style.width = (h > 0 ? scrollY / h * 100 : 0) + '%';
-  };
-  addEventListener('scroll', upd, { passive: true });
-  addEventListener('resize', upd);
-  upd();
 
   // brilho que segue o cursor (só desktop, sem reduced-motion)
   if (matchMedia('(pointer:fine)').matches && !REDUCED) {
