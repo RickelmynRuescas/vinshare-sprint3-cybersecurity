@@ -3,13 +3,18 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Etapa 2 · Código &amp; Infraestrutura — VIN Share</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 <main>
-  <span class="tag">Etapa 2 · peso 2,5</span>
-  <h1 style="margin-top:.6rem">Segurança em Código e Infraestrutura</h1>
-  <p class="lead">Correções e melhorias aplicadas à API do VIN Share e à camada de dados. Várias delas foram motivadas pelos achados do Semgrep na <a href="etapa1-devsecops.html#semgrep">Etapa 1</a>. Cada item traz o código <b>antes/depois</b>, a explicação técnica e o commit correspondente.</p>
+  <header class="hero">
+    <span class="num" aria-hidden="true">02</span>
+    <span class="eyebrow">Etapa 2 · peso 2,5</span>
+    <h1>Segurança em Código e Infraestrutura</h1>
+    <p class="lead">Correções na API, nos dados e na infraestrutura do VIN Share, muitas motivadas pelos achados do Semgrep da <a href="etapa1-devsecops.html#semgrep">Etapa 1</a>, com código antes/depois e commits.</p>
+  </header>
 
   <h2 id="visao">Camadas de defesa da API</h2>
 <pre class="mermaid">
@@ -27,9 +32,19 @@ flowchart TD
   RL -.->|limite 429| LOG
 </pre>
 
-  <h2 id="cripto">1. Criptografia local</h2>
-  <h3>1.1 PII em repouso: criptografia em nível de campo</h3>
-  <p>O Customer 360 Hub guarda nome, CPF, telefone e e-mail de clientes Ford. Antes, o SQLite armazenava tudo em texto puro, então qualquer cópia do arquivo <code>.db</code> (backup, notebook, laptop de analista) vazava a base inteira. Agora os campos sensíveis são cifrados com <b>Fernet</b> (AES-128-CBC + HMAC-SHA256, autenticado), e a chave vem de variável de ambiente/cofre, nunca do repositório. Para permitir busca por CPF sem decifrar a base, guardamos também um <b>HMAC-SHA256 do CPF</b> (<i>blind index</i>).</p>
+  <h2 id="cripto">Criptografia local</h2>
+  <h3>PII em repouso: criptografia em nível de campo</h3>
+  <div class="split">
+    <div>
+      <p>Nome, CPF, telefone e e-mail estavam em texto puro no SQLite: qualquer cópia do <code>.db</code> vazava a base.</p>
+      <ul>
+        <li>Campos sensíveis cifrados com <b>Fernet</b> (AES-128-CBC + HMAC-SHA256).</li>
+        <li><b>MultiFernet</b> permite rotação de chave.</li>
+        <li>Chaves no cofre, nunca no repositório.</li>
+        <li><b>Blind index</b> (HMAC-SHA256) permite buscar por CPF sem decifrar a base.</li>
+      </ul>
+    </div>
+    <div>
   <div class="fn bad">customer360_hub/models.py (antes)</div>
 <pre class="code"><span class="k">class</span> <span class="f">Customer</span>(Base):
     __tablename__ = <span class="s">"customers"</span>
@@ -64,8 +79,10 @@ _fernet = MultiFernet([Fernet(k) <span class="k">for</span> k <span class="k">in
     cpf_idx   = Column(String(64), index=<span class="k">True</span>, unique=<span class="k">True</span>)
     phone_enc = Column(LargeBinary)
     email_enc = Column(LargeBinary)</pre>
+    </div>
+  </div>
 
-  <h3>1.2 Senhas e dados em trânsito</h3>
+  <h3>Senhas e dados em trânsito</h3>
   <div class="grid g2">
     <div class="card"><h4>Senhas: Argon2id</h4><p class="muted">As senhas dos usuários do painel (consultores, gestores, admins) usam <b>Argon2id</b> via <code>argon2-cffi</code>, com salt aleatório por usuário e custo de memória alto, o que torna ataques com GPU caros. O MD5 sem salt anterior foi migrado com re-hash no próximo login.</p>
 <pre class="code"><span class="k">from</span> argon2 <span class="k">import</span> PasswordHasher
@@ -80,9 +97,18 @@ add_header Strict-Transport-Security
   </div>
   <div class="note"><b>App Ford (existente):</b> o VIN Share não cria um app novo. O app Ford atual consome os hubs, e nessa integração o token de sessão fica no <b>Android Keystore / iOS Keychain</b>, nunca em SharedPreferences/AsyncStorage em texto puro. O cache local dos dados vindos do VIN Share (histórico, Health Score) usa SQLCipher.</div>
 
-  <h2 id="api">2. Hardening da API</h2>
-  <h3>2.1 Rate limiting</h3>
-  <p>Sem limite, o endpoint <code>/auth/login</code> aceitava brute force ilimitado, e o <code>/v1/vehicles/{vin}/health</code> podia ser usado para enumerar VINs e raspar dados. Adotamos limites por IP e por usuário com <code>slowapi</code>, usando Redis como backend compartilhado entre réplicas. Dispositivos IoT têm cota própria por <code>device_id</code>.</p>
+  <h2 id="api">Hardening da API</h2>
+  <h3>Rate limiting</h3>
+  <div class="split">
+    <div>
+      <p>Sem limite, <code>/auth/login</code> aceitava brute force e <code>/v1/vehicles/{vin}/health</code> permitia enumerar VINs.</p>
+      <ul>
+        <li><code>slowapi</code> com Redis compartilhado entre réplicas.</li>
+        <li>Chave por usuário, por IP ou por <code>device_id</code> (IoT).</li>
+        <li>Login: 5/min e 20/h. Telemetria: 60/min por TCU.</li>
+      </ul>
+    </div>
+    <div>
   <div class="fn good">api/ratelimit.py</div>
 <pre class="code"><span class="k">from</span> slowapi <span class="k">import</span> Limiter
 <span class="k">from</span> slowapi.util <span class="k">import</span> get_remote_address
@@ -103,6 +129,9 @@ limiter = Limiter(key_func=key_func, storage_uri=settings.redis_url,
 <span class="f">@router.post</span>(<span class="s">"/v1/iot/telemetry"</span>)
 <span class="f">@limiter.limit</span>(<span class="s">"60/minute"</span>)                   <span class="c"># 1 msg/s por TCU</span>
 <span class="k">async def</span> <span class="f">ingest</span>(request: Request, batch: TelemetryBatch): ...</pre>
+    </div>
+  </div>
+
   <div class="term"><div class="term-bar"><i></i><i></i><i></i>teste de brute force contra /auth/login</div>
 <pre data-type="120">$ for i in $(seq 1 7); do curl -s -o /dev/null -w "%{http_code} " -X POST https://api.vinshare.local/auth/login -d '{"username":"gestor.sp","password":"x"}'; done
 401 401 401 401 401 <span class="r">429 429</span>
@@ -112,8 +141,17 @@ retry-after: 47
 x-ratelimit-limit: 5
 {"detail":"Rate limit exceeded: 5 per 1 minute"}</pre></div>
 
-  <h3>2.2 Validação de entrada</h3>
-  <p>Todas as entradas passam por modelos <b>Pydantic em modo strict</b>. O VIN precisa seguir o padrão ISO 3779 (17 caracteres, sem I/O/Q), os campos de telemetria têm faixas físicas plausíveis e campos extras são rejeitados, o que evita <i>mass assignment</i>, como um cliente enviando <code>"role": "admin"</code>. No acesso ao banco, as queries passam a ser parametrizadas, corrigindo o achado de SQL injection da Etapa 1.</p>
+  <h3>Validação de entrada</h3>
+  <div class="split">
+    <div>
+      <p>Toda entrada passa por <b>Pydantic strict</b>, e o SQL passa a ser parametrizado (corrige o achado de injection da Etapa 1).</p>
+      <ul>
+        <li>VIN no padrão ISO 3779: 17 caracteres, sem I/O/Q.</li>
+        <li>Telemetria com faixas físicas plausíveis.</li>
+        <li><code>extra="forbid"</code> barra <i>mass assignment</i> (ex.: <code>"role": "admin"</code>).</li>
+      </ul>
+    </div>
+    <div>
   <div class="fn bad">customer360_hub/repository.py (antes — achado Semgrep)</div>
 <pre class="code"><span class="k">def</span> <span class="f">get_by_vin</span>(vin):
     cur.execute(<span class="s">f"SELECT * FROM customers WHERE vin = '</span>{vin}<span class="s">'"</span>)   <span class="r"># ❌ vin = "' OR '1'='1"</span></pre>
@@ -137,9 +175,11 @@ VIN = constr(pattern=<span class="s">r"^[A-HJ-NPR-Z0-9]{17}$"</span>, strict=<sp
 <span class="c"># repository.py — query parametrizada</span>
 <span class="k">def</span> <span class="f">get_by_vin</span>(vin: str):
     cur.execute(<span class="s">"SELECT id, vin, health_score FROM vehicles WHERE vin = ?"</span>, (vin,))</pre>
+    </div>
+  </div>
 
-  <h3>2.3 JWT seguro</h3>
-  <p>Problemas encontrados na implementação original: assinatura não verificada (achado Semgrep), token sem expiração, segredo fraco (<code>"vinshare123"</code>) e aceite de qualquer algoritmo, o que abria o ataque <code>alg: none</code>. A nova implementação corrige cada um desses pontos:</p>
+  <h3>JWT seguro</h3>
+  <p>Antes: assinatura não verificada, sem expiração, segredo fraco (<code>"vinshare123"</code>) e qualquer algoritmo aceito (<code>alg: none</code>). Depois:</p>
   <div class="grid g2">
     <div>
   <div class="fn bad">api/auth.py (antes)</div>
@@ -182,7 +222,7 @@ VIN = constr(pattern=<span class="s">r"^[A-HJ-NPR-Z0-9]{17}$"</span>, strict=<sp
     <li><b>Denylist por <code>jti</code></b> para logout e revogação imediata em incidentes (usada na <a href="etapa3-logs-incidentes.html#picerl">Contenção</a>).</li>
   </ul>
 
-  <h3>2.4 Headers de segurança e CORS</h3>
+  <h3>Headers de segurança e CORS</h3>
   <div class="fn good">api/main.py</div>
 <pre class="code">app = FastAPI(title=<span class="s">"VIN Share API"</span>, debug=settings.env == <span class="s">"dev"</span>,
               docs_url=<span class="k">None</span> <span class="k">if</span> settings.env == <span class="s">"prod"</span> <span class="k">else</span> <span class="s">"/docs"</span>)
@@ -204,8 +244,8 @@ app.add_middleware(CORSMiddleware,
     resp.headers.pop(<span class="s">"server"</span>, <span class="k">None</span>)
     <span class="k">return</span> resp</pre>
 
-  <h2 id="rbac">3. Controle de acesso por perfil (RBAC)</h2>
-  <p>Os perfis propostos em aula foram adaptados à realidade da rede Ford:</p>
+  <h2 id="rbac">Controle de acesso por perfil (RBAC)</h2>
+  <p>Perfis da aula adaptados à rede Ford:</p>
   <div class="grid">
     <div class="card"><span class="tag low">consultor</span><h3 style="margin-top:.5rem">Consultor de Serviço <small>(Brigadista)</small></h3><p class="muted">Atua no balcão da concessionária. Vê clientes e veículos <b>somente da própria concessionária</b>, registra atendimentos e dispara lembretes individuais. Vê PII mascarada por padrão.</p></div>
     <div class="card"><span class="tag med">gestor</span><h3 style="margin-top:.5rem">Gestor <small>(Gestor)</small></h3><p class="muted">Gerente de pós-venda da concessionária ou regional. Acessa dashboards de retenção, Health Scores agregados, cria campanhas por perfil de cliente (ex.: Motorista de Aplicativo, Cliente Premium de Baixa Quilometragem) e exporta relatórios <b>das concessionárias sob sua gestão</b>.</p></div>
@@ -229,7 +269,16 @@ app.add_middleware(CORSMiddleware,
   <p class="muted">* PII completa só é exibida com o cliente em atendimento ativo (ordem de serviço aberta), e cada exibição gera o log <code>pii.viewed</code>.</p>
 
   <h3>Implementação</h3>
-  <p>A autorização checa duas coisas: a <b>permissão do perfil</b> (RBAC) e o <b>escopo de dados</b> (a concessionária do recurso precisa estar no escopo do usuário). A segunda checagem é a que impede <b>BOLA</b>, a vulnerabilidade nº 1 do OWASP API Top 10, em que um consultor da concessionária A troca o ID na URL para ler clientes da concessionária B.</p>
+  <div class="split">
+    <div>
+      <p>Duas checagens em cada requisição:</p>
+      <ul>
+        <li><b>Permissão do perfil</b> (RBAC), com MFA nas ações críticas.</li>
+        <li><b>Escopo de dados</b>: a concessionária do recurso precisa estar no escopo do usuário. Isso barra <b>BOLA</b> (API1).</li>
+      </ul>
+      <p class="muted">Fora do escopo a API responde <code>404</code>, para não confirmar que o recurso existe.</p>
+    </div>
+    <div>
   <div class="fn good">api/rbac.py</div>
 <pre class="code"><span class="k">from</span> enum <span class="k">import</span> StrEnum
 
@@ -273,6 +322,9 @@ MFA_REQUIRED = {<span class="s">"model:deploy"</span>, <span class="s">"user:man
     c = repo.get(customer_id) <span class="k">or</span> abort(404)
     enforce_dealer_scope(user, c.dealer_id)
     <span class="k">return</span> CustomerOut.masked(c) <span class="k">if</span> <span class="s">"customer:read_pii"</span> <span class="k">not in</span> PERMISSIONS[user.role] <span class="k">else</span> CustomerOut.full(c)</pre>
+    </div>
+  </div>
+
   <div class="term"><div class="term-bar"><i></i><i></i><i></i>teste de autorização — consultor da DLR-045 (São Paulo)</div>
 <pre data-type="110">$ curl -H "Authorization: Bearer $TOKEN_CONSULTOR" https://api.vinshare.local/v1/customers/88213
 HTTP/2 <span class="g">200</span>   {"id":88213,"name":"Mar*** S***","cpf":"***.***.***-41","dealer_id":"DLR-045", ...}
@@ -281,9 +333,9 @@ HTTP/2 <span class="r">404</span>   {"detail":"Not Found"}
 $ curl -X POST -H "Authorization: Bearer $TOKEN_CONSULTOR" https://api.vinshare.local/v1/campaigns
 HTTP/2 <span class="r">403</span>   {"detail":"permissão insuficiente"}</pre></div>
 
-  <h2 id="mqtt">4. Segurança MQTT/TLS para IoT</h2>
+  <h2 id="mqtt">Segurança MQTT/TLS para IoT</h2>
   <div class="note"><b>Fase 3 do projeto:</b> a telemetria de veículos conectados é a fase 3 da evolução do VIN Share (Batch/Histórico → Comportamental Digital → Telemetria Conectada). O broker abaixo foi especificado antecipando essa fase.</div>
-  <p>Os TCUs publicam telemetria via <b>MQTT</b> num broker (Mosquitto ou EMQX) que fica à frente do <code>iot-ingestor</code>. As regras de proteção são:</p>
+  <p>TCUs publicam via <b>MQTT</b> num broker (Mosquitto/EMQX) à frente do <code>iot-ingestor</code>:</p>
   <ul>
     <li><b>Somente a porta 8883</b> (MQTT sobre TLS 1.2+). A 1883 em texto puro fica desligada.</li>
     <li><b>mTLS obrigatório:</b> cada TCU tem um certificado próprio emitido pela CA <code>Ford VIN Share Device CA</code>, e o CN do certificado é o <code>device_id</code>.</li>
@@ -342,8 +394,8 @@ $ mosquitto_pub ... -t vinshare/telemetry/TCU-00A1C3 -f ponto.json
   </div>
   <div class="note warn"><b>Ligação com a Etapa 3:</b> no <a href="etapa3-logs-incidentes.html#picerl">incidente do TCU clonado</a>, a ACL impediu que o atacante publicasse em tópicos de outros veículos, e a cota por device limitou o flood. Na Erradicação, a <b>revogação via CRL</b> derrubou o certificado clonado já no handshake TLS, sem mexer nos demais TCUs. Como reforço, passamos a exigir chave privada em elemento seguro (HSM/TPM) no TCU, para que ela não possa ser exportada.</div>
 
-  <h2 id="infra">5. Infraestrutura como Código (IaC Security)</h2>
-  <p>A infraestrutura do VIN Share é descrita em código (Dockerfile e docker-compose), e por isso também é versionada, revisada em PR e verificada no pipeline.</p>
+  <h2 id="infra">Infraestrutura como Código (IaC Security)</h2>
+  <p>Dockerfile e docker-compose versionados, revisados em PR e verificados no pipeline.</p>
   <div class="grid g2">
     <div class="card"><h3>Dockerfile endurecido</h3>
 <pre class="code"><span class="k">FROM</span> python:3.12-slim <span class="k">AS</span> base

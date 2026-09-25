@@ -1,0 +1,25 @@
+# Vercel
+.vercel/
+
+# Node
+node_modules/
+
+# Variáveis de ambiente (mantém o exemplo)
+.env
+.env.*
+!.env.example
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Claude Code (configuração local)
+.claude/settings.local.json

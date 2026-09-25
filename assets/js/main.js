@@ -1,3 +1,5 @@
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 // Nav + footer compartilhados
 (function () {
   const pages = [
@@ -13,6 +15,7 @@
   nav.className = 'nav';
   nav.innerHTML = `<div class="nav-in"><a class="brand" href="index.html">VIN Share <span>· SecOps</span></a><ul>${
     pages.map((p, i) => `<li><a href="${p[0]}"${i === cur ? ' class="active"' : ''}>${p[1]}</a></li>`).join('')}</ul></div>`;
+  nav.insertAdjacentHTML('beforeend', '<div class="progress"></div>');
   document.body.prepend(nav);
 
   const main = document.querySelector('main');
@@ -26,12 +29,61 @@
   const f = document.createElement('footer');
   f.innerHTML = 'FIAP · Ford Challenge · Sprint 3 — Cybersecurity · Turma 3ESPV · Conteúdo técnico ilustrativo (mocado) para fins acadêmicos';
   document.body.append(f);
+
+  // barra de progresso de leitura
+  const bar = nav.querySelector('.progress');
+  const upd = () => {
+    const h = document.documentElement.scrollHeight - innerHeight;
+    bar.style.width = (h > 0 ? scrollY / h * 100 : 0) + '%';
+  };
+  addEventListener('scroll', upd, { passive: true });
+  addEventListener('resize', upd);
+  upd();
+
+  // brilho que segue o cursor (só desktop, sem reduced-motion)
+  if (matchMedia('(pointer:fine)').matches && !REDUCED) {
+    const g = document.createElement('div');
+    g.className = 'glow';
+    document.body.prepend(g);
+    addEventListener('pointermove', e => {
+      g.style.setProperty('--mx', e.clientX + 'px');
+      g.style.setProperty('--my', e.clientY + 'px');
+      g.classList.add('on');
+    }, { passive: true });
+    document.addEventListener('pointerleave', () => g.classList.remove('on'));
+  }
 })();
 
-// Mermaid
+// Mermaid: renderiza depois das fontes carregarem (evita texto cortado nos nós)
 if (window.mermaid) {
-  mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'strict', themeVariables: { fontFamily: 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif', fontSize: '15px' }, flowchart: { curve: 'basis', padding: 14, wrappingWidth: 260 } });
+  mermaid.initialize({
+    startOnLoad: false, theme: 'base', securityLevel: 'strict', deterministicIds: true,
+    themeVariables: {
+      darkMode: true, fontFamily: 'Inter, system-ui, sans-serif', fontSize: '14px',
+      background: '#0c0f14', primaryColor: '#12161d', primaryTextColor: '#e6edf3', primaryBorderColor: '#3a4452',
+      secondaryColor: '#1a2029', tertiaryColor: '#12161d', lineColor: '#5b6675', textColor: '#c9d1d9',
+      clusterBkg: 'rgba(26,32,41,.35)', clusterBorder: '#262d38', edgeLabelBackground: '#0c0f14',
+    },
+    flowchart: { curve: 'basis', padding: 14, wrappingWidth: 260 },
+  });
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => mermaid.run({ querySelector: '.mermaid' }));
 }
+
+// Código longo (> 22 linhas): mostra o início e recolhe o resto em <details>
+document.querySelectorAll('pre.code').forEach(pre => {
+  const lines = pre.innerHTML.replace(/\n$/, '').split('\n');
+  if (lines.length <= 22) return;
+  const keep = 14;
+  const wrap = document.createElement('div');
+  wrap.className = 'codewrap';
+  pre.before(wrap);
+  pre.innerHTML = lines.slice(0, keep).join('\n');
+  pre.classList.add('head');
+  const det = document.createElement('details');
+  det.innerHTML = `<summary>ver código completo (${lines.length} linhas)</summary><pre class="code">${lines.slice(keep).join('\n')}</pre>`;
+  det.addEventListener('toggle', () => wrap.classList.toggle('open', det.open));
+  wrap.append(pre, det);
+});
 
 // Executa fn quando o elemento entra na tela (uma vez)
 function onVisible(el, fn) {
@@ -41,6 +93,7 @@ function onVisible(el, fn) {
 
 // Terminais "digitados": <pre data-type> revela linha a linha
 document.querySelectorAll('pre[data-type]').forEach(pre => {
+  if (REDUCED) return;   // sem animação: conteúdo aparece completo
   const lines = pre.innerHTML.split('\n');
   const speed = +pre.dataset.type || 90;
   pre.innerHTML = '';
@@ -104,7 +157,7 @@ if (stream) {
   ];
   const col = { INFO: 'b', WARN: 'y', NOTICE: 'f', HIGH: 'r' };
   let n = 0;
-  setInterval(() => {
+  const push = () => {
     const e = (++n % 7 === 0) ? specials[(n / 7) % specials.length] : rnd(gens)();
     // formato compacto: hora  SEV  evento  serviço  k=v (JSON completo nos exemplos de referência)
     const { event, service, severity, ...rest } = e;
@@ -114,7 +167,9 @@ if (stream) {
     stream.append(line);
     while (stream.children.length > 40) stream.firstChild.remove();
     stream.scrollTop = stream.scrollHeight;
-  }, 1100);
+  };
+  if (REDUCED) for (let i = 0; i < 14; i++) push();
+  else setInterval(push, 1100);
 }
 
 // Dashboard / alerta (Etapa 3)
@@ -124,7 +179,7 @@ if (dash) {
   const vals = Array.from({ length: 30 }, () => 20 + Math.random() * 25);
   const render = hot => bars.innerHTML = vals.map((v, i) => `<span style="height:${Math.min(v, 100)}%"${hot && i >= vals.length - 3 ? ' class="hot"' : ''}></span>`).join('');
   render();
-  setInterval(() => { vals.shift(); vals.push(20 + Math.random() * 25); render(); }, 1500);
+  if (!REDUCED) setInterval(() => { vals.shift(); vals.push(20 + Math.random() * 25); render(); }, 1500);
   dash.querySelector('#fire').onclick = () => {
     vals.splice(-3, 3, 88, 95, 100);
     render(true);

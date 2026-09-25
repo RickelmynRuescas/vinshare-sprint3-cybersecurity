@@ -3,16 +3,21 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Etapa 1 · Pipeline DevSecOps — VIN Share</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 <main>
-  <span class="tag">Etapa 1 · peso 3,0</span>
-  <h1 style="margin-top:.6rem">Pipeline DevSecOps &amp; Análise de Código</h1>
-  <p class="lead">Como o código do VIN Share (APIs FastAPI dos hubs, notebooks de ML, painel Streamlit e integrações de mensageria) é verificado automaticamente antes de chegar em produção: <b>SAST com Semgrep</b> e <b>secret scanning com Trufflehog</b>, rodando localmente no pre-commit e no pipeline do GitHub Actions.</p>
+  <header class="hero">
+    <span class="num" aria-hidden="true">01</span>
+    <span class="eyebrow">Etapa 1 · peso 3,0</span>
+    <h1>Pipeline DevSecOps &amp; Análise de Código</h1>
+    <p class="lead">Todo código do VIN Share passa por <b>Semgrep</b> (SAST) e <b>Trufflehog</b> (segredos), no pre-commit e no GitHub Actions, antes de chegar em produção.</p>
+  </header>
 
   <h2 id="ssdlc">SDLC × SSDLC: shift-left</h2>
-  <p>No SDLC tradicional, a segurança aparece no fim, com um pentest antes do go-live, e cada falha descoberta ali custa caro para corrigir. No <b>SSDLC (Secure SDLC)</b> a segurança é "empurrada para a esquerda" (<i>shift-left</i>): vira atividade de cada fase, e boa parte dela é automatizada no fluxo do desenvolvedor.</p>
+  <p>No SDLC tradicional a segurança chega no fim (pentest pré-go-live). No <b>SSDLC</b> ela é empurrada para a esquerda (<i>shift-left</i>) e automatizada em cada fase.</p>
 <div class="grid g2 cmp">
 <div><h3 style="text-align:center">SDLC tradicional</h3>
 <pre class="mermaid">
@@ -34,7 +39,7 @@ flowchart TD
   </div>
 
   <h2 id="cicd">Diagrama do pipeline CI/CD</h2>
-  <p>O fluxo completo tem os pontos onde <b>Trufflehog</b> e <b>Semgrep</b> executam. Os pontos de SCA e Container Security (tracejados) são os que pesquisamos e posicionamos na arquitetura, sem aplicação nesta sprint.</p>
+  <p>Pontos de execução do <b>Trufflehog</b> e do <b>Semgrep</b>. Tracejado: SCA e Container Security, pesquisados e posicionados, sem aplicação nesta sprint.</p>
 <pre class="mermaid">
 flowchart TD
   DEV[Dev escreve código<br/>API / ML / Streamlit] --> PC{pre-commit hook}
@@ -58,8 +63,8 @@ flowchart TD
 </pre>
 
   <h3>Simulação do pipeline</h3>
-  <p class="muted">Rode os dois cenários: um PR limpo e um PR em que um desenvolvedor deixou o token da API do WhatsApp hardcoded no Engagement Hub.</p>
-  <div class="card" data-pipe>
+  <p class="muted">Dois cenários: PR limpo e PR com o token do WhatsApp hardcoded no Engagement Hub.</p>
+  <div class="card box" data-pipe>
     <div class="pipe">
       <div class="stage" data-id="checkout"><b>checkout</b>fetch-depth: 0</div>
       <div class="stage" data-id="secrets"><b>Trufflehog</b>secret scan</div>
@@ -74,13 +79,14 @@ flowchart TD
   </div>
 
   <h2 id="trufflehog">Secret Scanning com Trufflehog</h2>
-  <p>O Trufflehog procura credenciais combinando <b>regex</b> (padrões conhecidos: AWS, Twilio, SendGrid, Meta/WhatsApp, chaves privadas, JWT secrets) com <b>entropia</b> (strings aleatórias demais para serem texto comum). Seu diferencial é a <b>validação ativa</b>: ele testa a credencial contra a API do provedor e marca o resultado como <span class="tag crit">verified</span> ou <span class="tag">unverified</span>, o que reduz muito o ruído. No VIN Share os segredos mais sensíveis são os tokens dos canais (WhatsApp Cloud API, Twilio SMS, SendGrid), a <code>JWT_SECRET</code> da API, a chave Fernet de criptografia da PII e as credenciais do banco.</p>
-  <p>Usamos o Trufflehog em <b>duas camadas</b>:</p>
-  <div class="grid g2">
-    <div class="card"><h3>1. Pre-commit hook (local)</h3><p class="muted">Roda na máquina do dev antes do commit existir. É o ponto mais barato: o segredo nunca entra no histórico do git.</p></div>
-    <div class="card"><h3>2. GitHub Actions (pipeline)</h3><p class="muted">É a rede de segurança para quem não instalou o hook ou usou <code>--no-verify</code>. Varre o histórico completo do PR e bloqueia o merge.</p></div>
-  </div>
-
+  <div class="split">
+    <div>
+      <p>Combina <b>regex</b> (padrões de AWS, Twilio, SendGrid, Meta/WhatsApp, chaves privadas) com <b>entropia</b>, e faz <b>validação ativa</b>: testa a credencial no provedor e marca <span class="tag crit">verified</span> ou <span class="tag">unverified</span>.</p>
+      <p class="muted">Segredos críticos no VIN Share: tokens dos canais, <code>JWT_SECRET</code>, chave Fernet da PII e credenciais de infraestrutura.</p>
+      <div class="card"><h4>01 · Pre-commit hook (local)</h4><p class="muted">Roda antes do commit existir: o segredo nunca entra no histórico.</p></div>
+      <div class="card"><h4>02 · GitHub Actions (pipeline)</h4><p class="muted">Rede de segurança para quem não tem o hook ou usou <code>--no-verify</code>. Varre o histórico do PR e bloqueia o merge.</p></div>
+    </div>
+    <div>
   <div class="fn">.pre-commit-config.yaml</div>
 <pre class="code"><span class="c"># Hooks executados em todo "git commit" no repositório vinshare</span>
 <span class="k">repos:</span>
@@ -104,9 +110,11 @@ flowchart TD
       - <span class="k">id:</span> detect-private-key
       - <span class="k">id:</span> check-added-large-files   <span class="c"># evita subir dumps .db/.csv com PII</span>
         <span class="k">args:</span> [<span class="s">'--maxkb=5000'</span>]</pre>
+    </div>
+  </div>
 
   <h3>Teste real de bloqueio (simulado)</h3>
-  <p>Um desenvolvedor, testando o envio de lembrete de revisão pelo WhatsApp, deixou o token de acesso no código:</p>
+  <p>Um dev deixou o token do WhatsApp no código ao testar o lembrete de revisão:</p>
   <div class="fn bad">engagement_hub/channels/whatsapp.py (versão com problema)</div>
 <pre class="code"><span class="k">import</span> httpx
 
@@ -136,7 +144,7 @@ Commit: (staged)
 detect private key.......................................................<span class="g">Passed</span>
 semgrep..................................................................<span class="g">Passed</span>
 $ █</pre></div>
-  <p>Correção: o token sai do código e passa a ser lido de variável de ambiente, injetada pelo GitHub Secrets ou pelo cofre de segredos. Como a validação ativa confirmou que a chave era válida, ela também é <b>rotacionada</b> no Meta Business Manager, mesmo sem ter sido publicada.</p>
+  <p>Correção: token lido do ambiente/cofre. Como a validação ativa confirmou a chave como válida, ela também é <b>rotacionada</b> no Meta Business Manager.</p>
   <div class="fn good">engagement_hub/channels/whatsapp.py (corrigido)</div>
 <pre class="code"><span class="k">from</span> vinshare.config <span class="k">import</span> settings   <span class="c"># pydantic-settings lê do ambiente / vault</span>
 
@@ -152,7 +160,7 @@ semgrep..................................................................<span c
  2 files changed, 38 insertions(+)</pre></div>
 
   <h3>Varredura completa do histórico (resultado)</h3>
-  <p>Na adoção da ferramenta rodamos uma varredura em todo o histórico do repositório. Os achados abaixo mostram por que o scan do histórico importa: um segredo apagado em commit posterior continua acessível no git.</p>
+  <p>Varredura de todo o histórico na adoção da ferramenta: segredo apagado em commit posterior continua acessível no git.</p>
   <div class="term"><div class="term-bar"><i></i><i></i><i></i>trufflehog git file://. --results=verified,unknown --json | jq</div>
 <pre data-type="40">$ trufflehog git file://. --results=verified,unknown
 🐷🔑🐷  TruffleHog. Unearth your secrets. 🐷🔑🐷
@@ -175,12 +183,15 @@ Commit: 5b3d8f4
   </table></div>
 
   <h2 id="semgrep">SAST com Semgrep</h2>
-  <p>O Semgrep faz <b>análise semântica</b> do código-fonte, sem executá-lo. Ele entende a estrutura da linguagem (AST), então a regra <code>cursor.execute(f"...")</code> encontra a query montada com f-string mesmo que o nome da variável ou a formatação mudem. Assim identifica <i>code smells</i> de segurança: injeção, desserialização insegura, criptografia fraca, JWT mal validado, debug ligado etc.</p>
-  <p>Aplicamos dois conjuntos de regras:</p>
-  <ul>
-    <li><b>Rulesets oficiais:</b> <code>p/python</code>, <code>p/owasp-top-ten</code>, <code>p/jwt</code>, <code>p/secrets</code>, <code>p/dockerfile</code>.</li>
-    <li><b>Regras customizadas do VIN Share</b> (<code>.semgrep/vinshare.yml</code>), escritas para riscos específicos do projeto, como os abaixo.</li>
-  </ul>
+  <div class="split">
+    <div>
+      <p>Análise <b>semântica</b> (AST) do código, sem executá-lo: <code>cursor.execute(f"...")</code> é encontrado mesmo com outros nomes ou formatação. Detecta injeção, desserialização insegura, JWT mal validado, debug ligado.</p>
+      <ul>
+        <li><b>Rulesets oficiais:</b> <code>p/python</code>, <code>p/owasp-top-ten</code>, <code>p/jwt</code>, <code>p/secrets</code>, <code>p/dockerfile</code>.</li>
+        <li><b>Regras customizadas do VIN Share</b> (<code>.semgrep/vinshare.yml</code>), escritas para riscos específicos do projeto, como os abaixo.</li>
+      </ul>
+    </div>
+    <div>
   <div class="fn">.semgrep/vinshare.yml</div>
 <pre class="code"><span class="k">rules:</span>
   - <span class="k">id:</span> vinshare-sqlite-fstring-injection
@@ -231,6 +242,8 @@ Commit: 5b3d8f4
     <span class="k">pattern-either:</span>
       - <span class="k">pattern:</span> FastAPI(..., debug=True, ...)
       - <span class="k">pattern:</span> uvicorn.run(..., reload=True, ...)</pre>
+    </div>
+  </div>
 
   <h3>Resultado da varredura (simulado)</h3>
   <div class="term"><div class="term-bar"><i></i><i></i><i></i>semgrep scan --config p/owasp-top-ten --config .semgrep/vinshare.yml</div>
@@ -287,7 +300,16 @@ Ran 1.187 rules on 214 files: <span class="r">6 findings (3 blocking)</span>.</p
   </table></div>
 
   <h2 id="actions">Workflow do GitHub Actions</h2>
-  <p>A cada <code>push</code> e <code>pull_request</code> para <code>main</code>/<code>develop</code>, o workflow roda Trufflehog e Semgrep em paralelo. O job de build só executa se ambos passarem (<code>needs:</code>), e os resultados do Semgrep vão para a aba <i>Security</i> do GitHub em formato SARIF.</p>
+  <div class="split">
+    <div>
+      <p>Em cada <code>push</code>/<code>pull_request</code> para <code>main</code>/<code>develop</code>: Trufflehog e Semgrep em paralelo.</p>
+      <ul>
+        <li>Build só roda se ambos passarem (<code>needs:</code>).</li>
+        <li>Resultado do Semgrep vai em SARIF para a aba <i>Security</i>.</li>
+        <li>Segredos de deploy vêm de <code>secrets.*</code>, nunca do código.</li>
+      </ul>
+    </div>
+    <div>
   <div class="fn">.github/workflows/security.yml</div>
 <pre class="code"><span class="k">name:</span> VIN Share — Security Pipeline
 <span class="k">on:</span>
@@ -345,6 +367,8 @@ Ran 1.187 rules on 214 files: <span class="r">6 findings (3 blocking)</span>.</p
       - <span class="k">run:</span> ./scripts/deploy.sh staging
         <span class="k">env:</span>
           <span class="k">DEPLOY_TOKEN:</span> ${{ secrets.DEPLOY_TOKEN }}</pre>
+    </div>
+  </div>
 
   <h3>Execução no GitHub Actions (simulado)</h3>
   <div class="term"><div class="term-bar"><i></i><i></i><i></i>Actions · PR #87 feat(prediction): novo modelo de churn v3.2</div>
@@ -359,7 +383,7 @@ Ran 1.187 rules on 214 files: <span class="r">6 findings (3 blocking)</span>.</p
   Required status check "Semgrep — SAST" failed.</pre></div>
 
   <h2 id="sca">Pesquisa: SCA e Container Security</h2>
-  <p>Semgrep e Trufflehog cobrem o <b>código que escrevemos</b>. Porém a maior parte do que roda em produção é <b>código de terceiros</b> (bibliotecas e imagens base). Essas duas práticas completam a cobertura e já estão posicionadas no pipeline (tracejado no diagrama), embora não tenham sido aplicadas nesta sprint.</p>
+  <p>Semgrep e Trufflehog cobrem o código <b>próprio</b>; a maior parte do que roda em produção é de <b>terceiros</b> (libs e imagens). SCA e Container Security fecham essa lacuna (tracejado no diagrama).</p>
   <div class="grid g2">
     <div class="card">
       <h3>SCA: Software Composition Analysis</h3>
