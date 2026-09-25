@@ -226,42 +226,25 @@ document.querySelectorAll('.tl').forEach(tl => {
   intro.className = 'intro';
   intro.setAttribute('role', 'presentation');
   intro.style.setProperty('--dur', total + 'ms');
-  const bootLines = [
-    ['semgrep', 'sast'],
-    ['trufflehog', 'secrets'],
-    ['iac-scan', 'hadolint · checkov'],
-    ['elk', 'monitoring'],
-  ];
-  const bootHTML = '<span class="l on"><span class="p">$</span> <span class="cmd"></span></span>' +
-    bootLines.map(([k, v]) => `<span class="l">  <span class="ok">✓</span> ${k.padEnd(14)} ${v}</span>`).join('');
   intro.innerHTML = `
     <div class="intro-grid"></div>
     <picture>
       <source srcset="assets/img/hero-ford.webp" type="image/webp">
       <img src="assets/img/hero-ford-900.jpg" width="900" height="1350" alt="" decoding="async" fetchpriority="high">
     </picture>
-    <div class="intro-txt"><pre class="intro-boot" aria-hidden="true">${bootHTML}</pre><b>VIN Share <span>·</span> SecOps</b><small>FIAP · Ford Challenge · Sprint 3 — Cybersecurity</small></div>
+    <div class="intro-txt"><b>VIN Share <span>·</span> SecOps</b><small>FIAP · Ford Challenge · Sprint 3 — Cybersecurity</small></div>
     <div class="intro-bar"></div>
     <button type="button" class="intro-skip">pular ⏎</button>`;
   document.body.append(intro);
+  html.classList.add('intro-lock');            // página travada (sem scrollbar) durante a intro
   html.classList.remove('intro-pending');      // a intro assume a capa preta
 
   const img = intro.querySelector('img');
-  // boot do terminal: 1ª linha digitada, demais em fade; termina antes do fade-out
-  const cmd = 'vinshare-secops --init';
-  const lines = [...intro.querySelectorAll('.intro-boot .l')].slice(1);
-  const cmdEl = intro.querySelector('.intro-boot .cmd');
-  const boot = () => {
-    if (REDUCED) { cmdEl.textContent = cmd; lines.forEach(l => l.classList.add('on')); return; }
-    [...cmd].forEach((c, i) => setTimeout(() => { cmdEl.textContent += c; }, 250 + i * 13));
-    lines.forEach((l, i) => setTimeout(() => l.classList.add('on'), 650 + i * 150));
-  };
   let shown = false;
   const show = () => {
     if (shown) return;
     shown = true;
     requestAnimationFrame(() => intro.classList.add('show'));
-    boot();
   };
   if (img.complete) show(); else { img.addEventListener('load', show, { once: true }); img.addEventListener('error', show, { once: true }); setTimeout(show, 400); }
 
@@ -278,6 +261,7 @@ document.querySelectorAll('.tl').forEach(tl => {
     }
     done = true;
     intro.classList.add('out');
+    html.classList.remove('intro-lock');
     ['click', 'keydown', 'wheel', 'touchstart'].forEach(ev => removeEventListener(ev, end, true));
     setTimeout(() => intro.remove(), REDUCED ? 50 : 500);
   };
