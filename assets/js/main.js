@@ -1,5 +1,6 @@
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const WALK_STEP = 160;   // ms por item: sublinhado da navbar e contagem do número grande
+const FONTS_READY = document.fonts ? document.fonts.ready : Promise.resolve();
 
 // Nav + footer compartilhados
 (function () {
@@ -22,7 +23,6 @@ const WALK_STEP = 160;   // ms por item: sublinhado da navbar e contagem do núm
   // altura real da navbar (usada pelo índice sticky e pelo scroll-margin das âncoras)
   const setNavH = () => document.documentElement.style.setProperty('--navh', nav.offsetHeight + 'px');
   setNavH();
-  addEventListener('resize', setNavH);
   // mobile: navbar em uma linha com rolagem; mantém o item ativo visível
   const navUl = nav.querySelector('ul'), navAct = nav.querySelector('a.active');
   const keepActiveVisible = smooth => {
@@ -50,25 +50,25 @@ const WALK_STEP = 160;   // ms por item: sublinhado da navbar e contagem do núm
   if (!navAct) ind.hidden = true;
   else place(walk ? links[from] : navAct);           // antes do 1º render: já no ponto de partida
   if (!walk) keepActiveVisible(false);
-  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+  FONTS_READY.then(() => {
     if (!navAct) return;
     if (!walk) { place(navAct); return; }
     place(links[from]);
-    const dir = cur > from ? 1 : -1, dur = WALK_STEP;
-    ind.style.setProperty('--step', dur + 'ms');
+    const dir = cur > from ? 1 : -1;
+    ind.style.setProperty('--step', WALK_STEP + 'ms');
     ind.getBoundingClientRect();                     // aplica a posição inicial antes de ligar a transição
     ind.classList.add('walk');
     let i = from;
     const step = () => {
       i += dir;
       place(links[i]);
-      document.dispatchEvent(new CustomEvent('vs:navstep', { detail: { i, dir, dur } }));
-      if (i !== cur) setTimeout(step, dur);
-      else setTimeout(() => { ind.classList.remove('walk'); walking = false; keepActiveVisible(true); }, dur);
+      document.dispatchEvent(new CustomEvent('vs:navstep', { detail: { i, dir } }));
+      if (i !== cur) setTimeout(step, WALK_STEP);
+      else setTimeout(() => { ind.classList.remove('walk'); walking = false; keepActiveVisible(true); }, WALK_STEP);
     };
     requestAnimationFrame(step);
   });
-  addEventListener('resize', () => { if (navAct && !walking) place(navAct); });
+  addEventListener('resize', () => { setNavH(); if (navAct && !walking) place(navAct); });
   // guarda o item atual para a próxima página (F5 cai no mesmo item: sem caminhada)
   addEventListener('pagehide', () => { try { if (cur >= 0) sessionStorage.setItem('vs-nav-from', cur); } catch (e) {} });
   addEventListener('pageshow', e => { if (e.persisted) try { sessionStorage.removeItem('vs-nav-from'); } catch (x) {} });
@@ -150,7 +150,7 @@ function initMermaid() {
     },
     flowchart: { curve: 'basis', padding: 14, wrappingWidth: 260 },
   });
-  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => mermaid.run({ querySelector: '.mermaid' }));
+  FONTS_READY.then(() => mermaid.run({ querySelector: '.mermaid' }));
 }
 if (window.mermaid) initMermaid(); else document.addEventListener('DOMContentLoaded', initMermaid, { once: true });
 
@@ -365,7 +365,7 @@ document.querySelectorAll('.tl').forEach(tl => {
   setTimeout(end, total);
 })();
 
-// Impressão: abre <details>, completa terminais; restaura depois
+// Impressão: abre os <details> (tabelas da Etapa 4) e completa os terminais animados; restaura depois
 (function () {
   let opened = [];
   addEventListener('beforeprint', () => {
@@ -399,7 +399,8 @@ document.querySelectorAll('.tl').forEach(tl => {
   pop.addEventListener('focusout', e => { if (!pop.contains(e.relatedTarget) && e.relatedTarget !== btn) close(false); });
 })();
 
-// Número grande do topo nunca sai da tela (garante >= 24px da borda direita em qualquer largura)
+// Número grande do topo: nunca sai da tela (>= 24px da borda direita) e, na troca de página,
+// conta do número anterior até o atual, junto com o sublinhado da navbar (estilo odômetro)
 (function () {
   const n = document.querySelector('.hero .num');
   if (!n) return;
@@ -409,29 +410,23 @@ document.querySelectorAll('.tl').forEach(tl => {
     if (over > 0) n.style.translate = `${-Math.ceil(over)}px 0`;
   };
   fit();
-  (document.fonts ? document.fonts.ready : Promise.resolve()).then(fit);
+  FONTS_READY.then(fit);
   addEventListener('resize', fit);
-})();
 
-// Número grande: na troca de página conta do número anterior até o atual, junto com o sublinhado
-(function () {
-  const n = document.querySelector('.hero .num');
-  if (!n) return;
   const pad = v => String(v).padStart(2, '0');
-  const final = n.textContent.trim();
   const w = window.__vsWalk;
-  n.innerHTML = `<span class="d">${w ? pad(w.from) : final}</span>`;
+  n.innerHTML = `<span class="d">${w ? pad(w.from) : n.textContent.trim()}</span>`;
   if (!w) return;
-  const ease = 'cubic-bezier(.2,.7,.2,1)';
+  const ease = 'cubic-bezier(.2,.7,.2,1)', t = WALK_STEP * .9;
   document.addEventListener('vs:navstep', e => {
-    const { i, dir, dur } = e.detail;
+    const { i, dir } = e.detail;
     const old = n.querySelector('.d:last-child');
     const nw = document.createElement('span');
     nw.className = 'd';
     nw.textContent = pad(i);
     n.append(nw);
     // subindo: o atual sai por cima e o próximo entra de baixo; descendo, o contrário
-    const off = dir > 0 ? 60 : -60, t = dur * .9;
+    const off = dir > 0 ? 60 : -60;
     nw.animate([{ transform: `translateY(${off}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: t, easing: ease });
     if (old) {
       old.style.cssText = 'position:absolute;left:0;top:0';

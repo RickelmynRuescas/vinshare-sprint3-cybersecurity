@@ -14,7 +14,7 @@ main,footer{position:relative;z-index:1}
 a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
 
 /* nav */
-header.nav{position:sticky;top:0;z-index:50;background:rgba(12,15,20,.72);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--line2)}
+header.nav{position:sticky;top:0;z-index:50;background:rgba(12,15,20,.72);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--line2);view-transition-name:navbar}
 .nav-in{max-width:1180px;margin:auto;display:flex;align-items:center;gap:1rem;padding:.6rem 16px;flex-wrap:wrap}
 .brand{font:600 .9rem var(--mono);color:var(--tx);white-space:nowrap}.brand span{color:var(--acc)}
 .brand:hover{text-decoration:none}
@@ -31,7 +31,7 @@ header.nav{position:sticky;top:0;z-index:50;background:rgba(12,15,20,.72);-webki
 main{max-width:1180px;margin:auto;padding:3rem 16px 4rem;counter-reset:sec}
 /* topo da página */
 .hero{position:relative;padding:1rem 0 .5rem}
-.hero .num{position:absolute;right:min(0px,calc(1180px / 2 - 16px - 50vw + 40px));top:-1.5rem;font:700 clamp(6rem,18vw,12rem)/1 var(--mono);color:var(--tx);opacity:.05;pointer-events:none;user-select:none;letter-spacing:-.05em}
+.hero .num{position:absolute;right:min(0px,calc(1180px / 2 - 16px - 50vw + 40px));top:-1.5rem;font:700 clamp(6rem,18vw,12rem)/1 var(--mono);color:var(--tx);opacity:.05;pointer-events:none;user-select:none;letter-spacing:-.05em;overflow:hidden;height:1em}
 .eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
 h1{font-size:clamp(2rem,5.2vw,3.4rem);line-height:1.08;letter-spacing:-.025em;margin:.5rem 0 .9rem;max-width:900px}
 h2{font-size:1.5rem;letter-spacing:-.01em;margin:3.5rem 0 1rem;padding-top:1.2rem;border-top:1px solid var(--line);counter-increment:sec}
@@ -59,7 +59,6 @@ main ul,main ol{padding-left:1.2rem}
 .card{border-top:1px solid var(--line);padding:1rem 0 .4rem}
 .card h3{margin-top:0}
 .card.box{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:1.1rem 1.2rem}
-a.card{color:var(--tx);display:block;transition:border-color .2s}a.card:hover{border-color:var(--acc);text-decoration:none}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .stats div{padding:1rem 1rem 1rem 0}
 .stats div+div{border-left:1px solid var(--line);padding-left:1rem}
@@ -72,15 +71,14 @@ a.card{color:var(--tx);display:block;transition:border-color .2s}a.card:hover{bo
 .rows .n{font:600 1.6rem var(--mono);color:var(--tx2)}
 .rows h3{margin:0 0 .2rem;transition:color .2s}
 .rows p{margin:0}
-@media (max-width:560px){.rows a{grid-template-columns:3rem 1fr}.rows .tag{grid-column:2}}
+@media (max-width:560px){.rows a{grid-template-columns:3rem 1fr}}
 .note{border-left:2px solid var(--acc);padding:.2rem 0 .2rem 1rem;margin:1.2rem 0;color:var(--tx2)}
 .note b{color:var(--tx)}
-.note.warn{border-color:var(--warn)}.note.bad{border-color:var(--crit)}.note.good{border-color:var(--ok)}
+.note.warn{border-color:var(--warn)}.note.good{border-color:var(--ok)}
 
 /* code */
 pre.code{background:#080a0e;border:1px solid var(--line);border-radius:var(--r);padding:1rem;overflow-x:auto;font:13px/1.6 var(--mono);margin:.4rem 0 1rem;color:#d1d9e0}
 code{font-family:var(--mono);font-size:.86em;background:var(--bg3);padding:.08rem .3rem;border-radius:2px}
-pre code{background:none;padding:0}
 .fn{font:12px var(--mono);color:var(--tx2);background:var(--bg3);border:1px solid var(--line);border-bottom:0;border-radius:var(--r) var(--r) 0 0;padding:.3rem .8rem;margin-top:1rem}
 .fn+pre.code{border-radius:0 0 var(--r) var(--r);margin-top:0}
 .fn+.codewrap{margin-top:0}
@@ -203,25 +201,24 @@ footer{border-top:1px solid var(--line);color:var(--tx2);font:.75rem var(--mono)
   .tl .step{opacity:1}
 }
 
-/* intro de abertura (só index, 1ª visita da sessão) */
+/* intro de abertura (ao abrir o site e no F5; decidido no <head> de cada página) */
 /* enquanto a intro está ativa a página não rola: sem barra de rolagem vazando a textura do site */
 html.intro-pending,html.intro-lock{overflow:hidden}
 html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;background:#000;z-index:2147483646}
-.intro{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;margin:0;z-index:2147483647;background:#000;overflow:hidden;cursor:pointer;transition:opacity .45s ease}
+.intro{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;z-index:2147483647;background:#000;overflow:hidden;cursor:pointer;transition:opacity .45s ease}
 .intro.out{opacity:0;pointer-events:none}
-/* foto inteira (vertical), menor, à direita do centro, bordas dissolvidas no preto */
-.intro picture{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;justify-content:flex-end;padding:0;pointer-events:none}
+/* foto vertical inteira, encostada à direita, bordas dissolvidas no preto */
+.intro picture{position:absolute;inset:0;z-index:0;display:flex;align-items:center;justify-content:flex-end;pointer-events:none}
 .intro img{display:block;width:auto;height:100vh;height:100dvh;max-width:66.7dvh;aspect-ratio:900/1350;object-fit:contain;
   -webkit-mask-image:linear-gradient(to right,transparent 0,#000 45%),linear-gradient(to bottom,transparent 0,#000 12%,#000 76%,transparent 92%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent 0,#000 45%),linear-gradient(to bottom,transparent 0,#000 12%,#000 76%,transparent 92%);mask-composite:intersect;transform-origin:right center;
   opacity:0;transform:scale(1.03);filter:brightness(1.12) contrast(1.08);transition:opacity .9s ease,transform 3.2s cubic-bezier(.2,.6,.2,1)}
 .intro.show img{opacity:1;transform:scale(1)}
 .intro::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
   background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,0,.6) 100%)}
-.intro-txt{position:absolute;z-index:2;left:clamp(16px,6vw,96px);right:16px;bottom:clamp(40px,10vh,110px);opacity:0;transform:translateY(8px);transition:opacity .6s ease .25s,transform .6s ease .25s}
+.intro-txt{position:absolute;z-index:2;left:clamp(16px,6vw,96px);right:16px;bottom:clamp(40px,10vh,110px);opacity:0;transform:translateY(8px);transition:opacity .6s ease .25s,transform .6s ease .25s;text-shadow:0 2px 20px #000,0 0 40px #000}
 .intro.show .intro-txt{opacity:1;transform:none}
 .intro-txt b{display:block;font:700 clamp(2.2rem,6vw,4.6rem)/1 var(--sans);letter-spacing:-.03em;color:#fff}
 .intro-txt b span{color:var(--acc)}
-.intro-txt{text-shadow:0 2px 20px #000,0 0 40px #000}
 .intro-txt small{display:block;margin-top:.8rem;font:500 clamp(.68rem,1.4vw,.82rem) var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#aab4c0}
 .intro-bar{position:absolute;z-index:3;left:0;bottom:0;height:2px;width:0;background:var(--acc)}
 .intro.show .intro-bar{width:100%;transition:width var(--dur,1.6s) linear}
@@ -243,7 +240,6 @@ html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;backgr
 .intro-grid{position:absolute;inset:0;z-index:0;pointer-events:none;
   background-image:radial-gradient(rgba(143,155,170,.16) 1px,transparent 1px);background-size:24px 24px;
   -webkit-mask-image:linear-gradient(to right,#000 0,#000 30%,transparent 60%);mask-image:linear-gradient(to right,#000 0,#000 30%,transparent 60%)}
-.intro picture{z-index:0}
 
 /* ---------- navegação e acesso ---------- */
 /* âncoras não ficam escondidas atrás da navbar */
@@ -252,7 +248,6 @@ html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;backgr
 /* foco visível pelo teclado */
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:2px}
 .nav ul a:focus-visible,.toc a:focus-visible{outline-offset:-2px}
-summary:focus-visible,.btn:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
 /* index: atalhos logo abaixo do topo */
 .cta{display:flex;flex-wrap:wrap;gap:.6rem;margin:.2rem 0 2rem}
@@ -273,19 +268,14 @@ summary:focus-visible,.btn:focus-visible,button:focus-visible{outline:2px solid 
 .toc a:hover{color:var(--tx);text-decoration:none}
 .toc a.on{color:var(--tx);border-left-color:var(--acc)}
 .toc a.on span{color:var(--acc);opacity:1}
-/* >=1280px: todo <main> ocupa a largura total com o mesmo recuo (mesma caixa em todas as páginas,
-   para a transição entre páginas não esticar o bloco) */
+/* >=1280px: todo <main> ocupa a largura total com o mesmo recuo (mesma caixa em todas as páginas).
+   Nas etapas o texto mantém 890px alinhado à navbar e o índice vai para a margem direita
+   (no mínimo 64px de folga). */
 @media (min-width:1280px){
   main{max-width:none;padding-left:calc((100% - 1180px) / 2 + 16px);padding-right:40px}
   main:not(.has-toc)>:not(.hero){max-width:1148px}
   .hero .num{right:0}
-}
-/* >=1280px: o texto mantém a largura (890px) e o alinhamento com a navbar; o índice vai
-   para a margem direita da tela, com no mínimo 64px de folga */
-@media (min-width:1280px){
-  main.has-toc{max-width:none;display:grid;align-items:start;
-    padding-left:calc((100% - 1180px) / 2 + 16px);padding-right:40px;
-    grid-template-columns:minmax(0,890px) minmax(64px,1fr) 210px}
+  main.has-toc{display:grid;align-items:start;grid-template-columns:minmax(0,890px) minmax(64px,1fr) 210px}
   main.has-toc>.hero{grid-column:1/-1}
   main.has-toc>.content{grid-column:1;grid-row:2;min-width:0}
   main.has-toc>.toc{grid-column:3;grid-row:2;position:sticky;top:calc(var(--navh,56px) + 1.5rem);max-height:calc(100vh - var(--navh,56px) - 3rem);overflow-y:auto;padding-top:1.2rem}
@@ -313,8 +303,7 @@ summary:focus-visible,.btn:focus-visible,button:focus-visible{outline:2px solid 
 @view-transition{navigation:auto}
 /* A captura "root" tem o tamanho da janela: o zoom parte sempre do centro do que está na tela,
    mesmo com a página rolada. A navbar tem transição própria; o número grande conta (JS). */
-header.nav{view-transition-name:navbar}
-::view-transition-group(navbar),::view-transition-old(navbar),::view-transition-new(navbar){animation:none}
+::view-transition-group(navbar),::view-transition-new(navbar){animation:none}
 /* a foto antiga da navbar (com o sublinhado no item anterior) não aparece: só a nova, ao vivo, com o sublinhado caminhando */
 ::view-transition-old(navbar){display:none}
 /* conteúdo: sai reduzindo (1 → .97) e entra vindo de levemente maior (1.02 → 1), com fade */
@@ -336,7 +325,7 @@ header.nav{view-transition-name:navbar}
   @page{margin:14mm}
   html,body{background:#fff!important;color:#111!important}
   body{background-image:none!important;font-size:10.5pt}
-  header.nav,.intro,.totop,.pn,.toc,.cta,.btn,button,.code-toggle,.live{display:none!important}
+  header.nav,.intro,.totop,.pn,.toc,.cta,.team,.btn,button,.code-toggle,.live{display:none!important}
   main,main.has-toc{display:block;max-width:none;padding:0}
   .hero .num{display:none}
   h1{font-size:22pt}
@@ -363,10 +352,9 @@ header.nav{view-transition-name:navbar}
   footer{border-top:1px solid #ccd2da;color:#555}
 }
 
-/* index: "O que é" ao lado dos atalhos + integrantes em popover */
+/* index: "O que é" ao lado dos atalhos + botão "Integrantes" com popover */
 .about{align-items:center;margin-bottom:1.5rem}
 .about .cta{flex-direction:column;align-items:flex-start;margin:0}
-.team{position:relative}
 .team-btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--bg2);border:1px solid rgba(79,140,255,.55);color:var(--tx);font:500 .76rem var(--mono);letter-spacing:.02em;padding:.45rem .8rem;border-radius:var(--r);cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45)}
 .team-btn::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--acc)}
 .team-btn:hover,.team-btn[aria-expanded="true"]{border-color:var(--acc);background:var(--bg3)}
@@ -375,12 +363,9 @@ header.nav{view-transition-name:navbar}
 .team-pop[hidden]{display:none}
 .team-pop table{font-size:.86rem}
 .team-pop td{padding:.4rem .9rem .4rem 0;white-space:nowrap}
-.team-pop:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
 /* rodapé */
 footer p{margin:.15rem 0}
-@media print{.team{display:none}}
-
 
 /* index: botão da turma fixo no canto superior esquerdo, acompanha a rolagem */
 .team-fab{position:fixed;z-index:45;top:calc(var(--navh,56px) + 14px);left:16px}
@@ -390,10 +375,8 @@ footer p{margin:.15rem 0}
   .team-pop td{white-space:normal}
   .team-pop td:first-child{white-space:nowrap}
 }
-@media print{.team-fab{display:none!important}}
 
 /* número grande: contagem estilo odômetro ao trocar de página */
-.hero .num{overflow:hidden;height:1em}
 .hero .num .d{display:block}
 
 /* simulação do pipeline: botão do cenário em execução em destaque */
