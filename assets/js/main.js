@@ -394,3 +394,17 @@ document.querySelectorAll('.tl').forEach(tl => {
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !pop.hidden) close(); });
   pop.addEventListener('focusout', e => { if (!pop.contains(e.relatedTarget) && e.relatedTarget !== btn) close(false); });
 })();
+
+// Número grande do topo nunca sai da tela (garante >= 24px da borda direita em qualquer largura)
+(function () {
+  const n = document.querySelector('.hero .num');
+  if (!n) return;
+  const fit = () => {
+    n.style.translate = '';
+    const over = n.getBoundingClientRect().right - (document.documentElement.clientWidth - 24);
+    if (over > 0) n.style.translate = `${-Math.ceil(over)}px 0`;
+  };
+  fit();
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(fit);
+  addEventListener('resize', fit);
+})();

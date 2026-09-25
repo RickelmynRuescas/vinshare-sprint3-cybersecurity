@@ -382,3 +382,18 @@ main{view-transition-name:main}
 footer p{margin:.15rem 0}
 footer .team-list{color:var(--tx2);opacity:.85}
 @media print{.team{display:none}}
+
+/* index: integrantes sempre visíveis na margem esquerda (espelha o índice das etapas);
+   só a partir de 1620px, quando cabem 160px + 48px de folga + 24px de borda */
+.team-side{display:none}
+@media (min-width:1620px){
+  main{position:relative}
+  .team-side{display:block;position:absolute;width:160px;top:calc(3rem + 1rem + 1.24rem + .5rem + 7px);
+    left:calc((100% - 1180px) / 2 + 16px - 48px - 160px)}
+  .team-side ol{list-style:none;padding:0;margin:0}
+  .team-side li{padding:.45rem 0;border-top:1px solid var(--line2);font-size:.8rem;line-height:1.35;color:var(--tx)}
+  .team-side li:first-child{border-top:0;padding-top:0}
+  .team-side li span{display:block;font:500 .68rem var(--mono);color:var(--tx2);margin-bottom:.1rem}
+  .about .team{display:none}
+}
+@media print{.team-side{display:none!important}}
