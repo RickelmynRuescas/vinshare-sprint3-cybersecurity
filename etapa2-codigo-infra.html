@@ -281,7 +281,69 @@ HTTP/2 <span class="r">404</span>   {"detail":"Not Found"}
 $ curl -X POST -H "Authorization: Bearer $TOKEN_CONSULTOR" https://api.vinshare.local/v1/campaigns
 HTTP/2 <span class="r">403</span>   {"detail":"permissão insuficiente"}</pre></div>
 
-  <h2 id="infra">4. Infraestrutura</h2>
+  <h2 id="mqtt">4. Segurança MQTT/TLS para IoT</h2>
+  <div class="note"><b>Fase 3 do projeto:</b> a telemetria de veículos conectados é a fase 3 da evolução do VIN Share (Batch/Histórico → Comportamental Digital → Telemetria Conectada). O broker abaixo foi especificado antecipando essa fase.</div>
+  <p>Os TCUs publicam telemetria via <b>MQTT</b> num broker (Mosquitto ou EMQX) que fica à frente do <code>iot-ingestor</code>. As regras de proteção são:</p>
+  <ul>
+    <li><b>Somente a porta 8883</b> (MQTT sobre TLS 1.2+). A 1883 em texto puro fica desligada.</li>
+    <li><b>mTLS obrigatório:</b> cada TCU tem um certificado próprio emitido pela CA <code>Ford VIN Share Device CA</code>, e o CN do certificado é o <code>device_id</code>.</li>
+    <li><b>Sem acesso anônimo</b>, e a identidade vem do certificado (<code>use_identity_as_username</code>).</li>
+    <li><b>ACL por tópico:</b> cada TCU só publica em <code>vinshare/telemetry/{device_id}</code> e só lê os próprios comandos. Um device não consegue ler nem publicar em nome de outro.</li>
+    <li><b>QoS 1</b> (entrega ao menos uma vez), com deduplicação por <code>msg_id</code> no ingestor.</li>
+    <li><b>CRL</b> (lista de revogação) carregada pelo broker: um certificado revogado é recusado já no handshake.</li>
+  </ul>
+  <div class="grid g2">
+    <div>
+  <div class="fn">mosquitto/mosquitto.conf</div>
+<pre class="code"><span class="c"># sem listener 1883: apenas TLS</span>
+<span class="k">listener</span> 8883
+<span class="k">protocol</span> mqtt
+<span class="k">tls_version</span> tlsv1.2
+<span class="k">ciphers</span> ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384
+
+<span class="c"># mTLS — CA "Ford VIN Share Device CA"</span>
+<span class="k">cafile</span>   /mosquitto/certs/ford-vinshare-device-ca.pem
+<span class="k">certfile</span> /mosquitto/certs/broker.pem
+<span class="k">keyfile</span>  /mosquitto/certs/broker.key
+<span class="k">require_certificate</span> true
+<span class="k">use_identity_as_username</span> true      <span class="c"># username = CN = device_id</span>
+<span class="k">crlfile</span>  /mosquitto/certs/device-ca.crl  <span class="c"># revogação</span>
+
+<span class="k">allow_anonymous</span> false
+<span class="k">acl_file</span> /mosquitto/config/acl
+
+<span class="c"># limites contra flood (API4)</span>
+<span class="k">max_inflight_messages</span> 20
+<span class="k">max_queued_messages</span> 100
+<span class="k">message_size_limit</span> 65536
+<span class="k">max_connections</span> 250000</pre>
+    </div>
+    <div>
+  <div class="fn">mosquitto/acl</div>
+<pre class="code"><span class="c"># %u = username = CN do certificado (device_id)</span>
+<span class="c"># cada TCU publica só no próprio tópico (QoS 1 no cliente)</span>
+<span class="k">pattern write</span> vinshare/telemetry/%u
+<span class="k">pattern read</span>  vinshare/commands/%u
+
+<span class="c"># serviço de ingestão (cert próprio, CN=iot-ingestor)</span>
+<span class="k">user</span> iot-ingestor
+<span class="k">topic read</span>  vinshare/telemetry/#
+<span class="k">topic write</span> vinshare/commands/#</pre>
+  <div class="fn">publicação no TCU (mock)</div>
+<pre class="code">$ mosquitto_pub -h mqtt.vinshare.ford.com.br -p 8883 \
+    --cafile ford-vinshare-device-ca.pem \
+    --cert TCU-9F21AB.pem --key TCU-9F21AB.key \
+    -q 1 -t vinshare/telemetry/TCU-9F21AB -f ponto.json
+
+<span class="c"># tentando publicar no tópico de outro device:</span>
+$ mosquitto_pub ... -t vinshare/telemetry/TCU-00A1C3 -f ponto.json
+<span class="r">Error: Not authorized</span>   <span class="c"># bloqueado pela ACL</span></pre>
+    </div>
+  </div>
+  <div class="note warn"><b>Ligação com a Etapa 3:</b> no <a href="etapa3-logs-incidentes.html#picerl">incidente do TCU clonado</a>, a ACL impediu que o atacante publicasse em tópicos de outros veículos, e a cota por device limitou o flood. Na Erradicação, a <b>revogação via CRL</b> derrubou o certificado clonado já no handshake TLS, sem mexer nos demais TCUs. Como reforço, passamos a exigir chave privada em elemento seguro (HSM/TPM) no TCU, para que ela não possa ser exportada.</div>
+
+  <h2 id="infra">5. Infraestrutura como Código (IaC Security)</h2>
+  <p>A infraestrutura do VIN Share é descrita em código (Dockerfile e docker-compose), e por isso também é versionada, revisada em PR e verificada no pipeline.</p>
   <div class="grid g2">
     <div class="card"><h3>Dockerfile endurecido</h3>
 <pre class="code"><span class="k">FROM</span> python:3.12-slim <span class="k">AS</span> base
@@ -299,14 +361,92 @@ HTTP/2 <span class="r">403</span>   {"detail":"permissão insuficiente"}</pre></
         <li>Rede segmentada: banco e Redis só acessíveis pelos hubs, nunca expostos à internet.</li>
         <li>Modelos de ML carregados apenas de uma <b>allowlist com hash SHA-256</b> (corrige <i>unsafe-model-load</i>).</li>
         <li>Backups cifrados, com retenção definida conforme a LGPD.</li>
-        <li>Container com <code>read_only: true</code> e <code>security_opt: no-new-privileges</code>.</li>
+        <li>Dependências com <code>--require-hashes</code>, para evitar pacote adulterado no build.</li>
       </ul></div>
   </div>
+
+  <div class="fn">docker-compose.yml (endurecido)</div>
+<pre class="code"><span class="k">x-hardening:</span> &amp;hardening
+  <span class="k">read_only:</span> true                     <span class="c"># filesystem imutável</span>
+  <span class="k">tmpfs:</span> [/tmp]
+  <span class="k">security_opt:</span> [<span class="s">"no-new-privileges:true"</span>]
+  <span class="k">cap_drop:</span> [ALL]                      <span class="c"># nenhuma capability do kernel</span>
+  <span class="k">user:</span> <span class="s">"10001:10001"</span>
+  <span class="k">restart:</span> unless-stopped
+  <span class="k">deploy:</span>
+    <span class="k">resources:</span> { <span class="k">limits:</span> { <span class="k">cpus:</span> <span class="s">"1.0"</span>, <span class="k">memory:</span> 1g } }
+
+<span class="k">services:</span>
+  <span class="k">api:</span>
+    &lt;&lt;: *hardening
+    <span class="k">image:</span> ghcr.io/vinshare/api:8c41e2a
+    <span class="k">ports:</span> [<span class="s">"443:8443"</span>]                <span class="c"># único serviço exposto</span>
+    <span class="k">networks:</span> [edge, backend]
+    <span class="k">secrets:</span> [jwt_secret, pii_keys, whatsapp_token]
+    <span class="k">environment:</span>
+      <span class="k">JWT_SECRET_FILE:</span> /run/secrets/jwt_secret
+      <span class="k">PII_KEYS_FILE:</span> /run/secrets/pii_keys
+
+  <span class="k">mqtt-broker:</span>
+    &lt;&lt;: *hardening
+    <span class="k">image:</span> eclipse-mosquitto:2
+    <span class="k">ports:</span> [<span class="s">"8883:8883"</span>]                <span class="c"># só TLS, sem 1883</span>
+    <span class="k">networks:</span> [edge, iot]
+
+  <span class="k">iot-ingestor:</span>
+    &lt;&lt;: *hardening
+    <span class="k">image:</span> ghcr.io/vinshare/iot-ingestor:8c41e2a
+    <span class="k">networks:</span> [iot, backend]
+
+  <span class="k">db:</span>
+    &lt;&lt;: *hardening
+    <span class="k">image:</span> postgres:16-alpine
+    <span class="k">read_only:</span> false                  <span class="c"># precisa gravar em volume</span>
+    <span class="k">volumes:</span> [dbdata:/var/lib/postgresql/data]
+    <span class="k">networks:</span> [data]                   <span class="c"># sem portas publicadas</span>
+    <span class="k">secrets:</span> [db_password]
+    <span class="k">environment:</span>
+      <span class="k">POSTGRES_PASSWORD_FILE:</span> /run/secrets/db_password
+
+<span class="k">networks:</span>
+  <span class="k">edge:</span> {}
+  <span class="k">iot:</span>     { <span class="k">internal:</span> true }
+  <span class="k">backend:</span> { <span class="k">internal:</span> true }
+  <span class="k">data:</span>    { <span class="k">internal:</span> true }        <span class="c"># banco isolado</span>
+
+<span class="k">secrets:</span>                             <span class="c"># nunca em ENV literal nem na imagem</span>
+  <span class="k">jwt_secret:</span>     { <span class="k">external:</span> true }
+  <span class="k">pii_keys:</span>       { <span class="k">external:</span> true }
+  <span class="k">whatsapp_token:</span> { <span class="k">external:</span> true }
+  <span class="k">db_password:</span>    { <span class="k">external:</span> true }
+
+<span class="k">volumes:</span>
+  <span class="k">dbdata:</span> {}</pre>
+  <p class="muted" style="margin-top:-.4rem">No exemplo, o <code>db</code> está só na rede <code>data</code>. Numa topologia completa os hubs também entrariam nela, e o <code>db</code> seguiria sem acesso a <code>edge</code> nem a <code>iot</code>.</p>
+
+  <h3>Lint de IaC no pipeline</h3>
+  <div class="tbl"><table>
+    <tr><th>Ferramenta</th><th>O que verifica</th><th>Exemplo de achado</th><th>Onde roda</th></tr>
+    <tr><td><b>Hadolint</b></td><td>Boas práticas de Dockerfile</td><td>DL3002: último <code>USER</code> é root; DL3008: versão de pacote não fixada</td><td>pre-commit + CI</td></tr>
+    <tr><td><b>Semgrep <code>p/dockerfile</code> + <code>p/docker-compose</code></b></td><td>Padrões inseguros em Dockerfile e docker-compose</td><td>segredo em <code>ENV</code>, <code>ADD</code> com URL remota, serviço <code>privileged</code> ou sem <code>no-new-privileges</code>/<code>read_only</code></td><td>job SAST do <code>security.yml</code> (<a href="etapa1-devsecops.html#actions">Etapa 1</a>)</td></tr>
+    <tr><td><b>Checkov</b></td><td>Dockerfile e (futuro) Terraform/Kubernetes</td><td>CKV_DOCKER_2: sem HEALTHCHECK; CKV_DOCKER_3: sem USER não-root</td><td>job <code>iac-scan</code> no CI</td></tr>
+  </table></div>
+<pre class="code"><span class="c"># trecho adicionado ao .github/workflows/security.yml</span>
+  <span class="k">iac-scan:</span>
+    <span class="k">runs-on:</span> ubuntu-latest
+    <span class="k">steps:</span>
+      - <span class="k">uses:</span> actions/checkout@v4
+      - <span class="k">uses:</span> hadolint/hadolint-action@v3.1.0
+        <span class="k">with:</span> { <span class="k">dockerfile:</span> Dockerfile, <span class="k">failure-threshold:</span> error }
+      - <span class="k">uses:</span> bridgecrewio/checkov-action@v12
+        <span class="k">with:</span> { <span class="k">directory:</span> ., <span class="k">framework:</span> dockerfile, <span class="k">soft_fail:</span> false }</pre>
 
   <h2 id="commits">Commits das correções</h2>
   <p class="muted">Histórico fictício da branch <code>security/sprint3</code>, com commits ligados aos achados da Etapa 1 e aos itens desta página.</p>
   <div class="term"><div class="term-bar"><i></i><i></i><i></i>git log --oneline --graph security/sprint3</div>
 <pre data-type="80">$ git log --oneline --graph security/sprint3
+* <span class="y">f3b8e10</span> feat(iac): docker-compose endurecido (read_only, cap_drop ALL, redes internas, secrets) + job iac-scan
+* <span class="y">d6a2c47</span> feat(iot): broker MQTT só 8883 com mTLS, ACL por device_id e CRL  <span class="c">[fase 3 - telemetria]</span>
 * <span class="y">b90d4f2</span> fix(prediction): allowlist + verificação SHA-256 antes de joblib.load  <span class="c">[semgrep: unsafe-model-load]</span>
 * <span class="y">4a1f0de</span> feat(rbac): perfis consultor/gestor/admin + escopo por concessionária (anti-BOLA)
 * <span class="y">c33e871</span> fix(auth): JWT com algoritmo fixo, exp/iss/aud obrigatórios e denylist por jti  <span class="c">[semgrep: jwt-no-verify]</span>

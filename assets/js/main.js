@@ -101,7 +101,6 @@ if (stream) {
   const specials = [
     { event: 'authz.access.denied', service: 'customer360-api', user_id: 'u-4471', role: 'consultor', resource: '/v1/customers?dealer_id=DLR-212', reason: 'dealer_scope_violation', severity: 'HIGH' },
     { event: 'config.critical.changed', service: 'admin-console', user_id: 'u-0007', role: 'admin', change: 'rate_limit.login=10/min→5/min', severity: 'NOTICE' },
-    { event: 'ml.drift.detected', service: 'prediction-hub', model: 'churn_rf_v3.2', psi: 0.31, threshold: 0.2, severity: 'HIGH' },
   ];
   const col = { INFO: 'b', WARN: 'y', NOTICE: 'f', HIGH: 'r' };
   let n = 0;
