@@ -313,20 +313,31 @@ summary:focus-visible,.btn:focus-visible,button:focus-visible{outline:2px solid 
 
 /* ---------- transição entre páginas (View Transitions entre documentos) ---------- */
 @view-transition{navigation:auto}
+/* A captura "root" tem o tamanho da janela: o zoom parte sempre do centro do que está na tela,
+   mesmo com a página rolada. A navbar e o número grande têm transições próprias. */
 header.nav{view-transition-name:navbar}
-main{view-transition-name:main}
 .hero .num{view-transition-name:stagenum}
 ::view-transition-group(navbar),::view-transition-old(navbar),::view-transition-new(navbar){animation:none}
-::view-transition-old(main){animation:vt-out .28s cubic-bezier(.4,0,.2,1) both}
-::view-transition-new(main){animation:vt-in .32s cubic-bezier(.2,.7,.2,1) .04s both}
-::view-transition-group(navind){animation-duration:.35s;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
-::view-transition-group(main){animation:none}          /* sem esticar: só o fade/slide do old/new */
-::view-transition-group(stagenum){animation:none}      /* número só em crossfade */
-::view-transition-old(root),::view-transition-new(root){animation-duration:.2s}
-@keyframes vt-out{to{opacity:0;transform:translateY(-12px)}}
-@keyframes vt-in{from{opacity:0;transform:translateY(16px)}}
+/* conteúdo: sai reduzindo (1 → .97) e entra vindo de levemente maior (1.02 → 1), com fade */
+::view-transition-old(root){animation:vt-zoom-out .36s cubic-bezier(.4,0,.2,1) both}
+::view-transition-new(root){animation:vt-zoom-in .4s cubic-bezier(.2,.7,.2,1) .04s both}
+/* número grande: o antigo sai subindo, o novo entra vindo de baixo */
+::view-transition-group(stagenum){animation-duration:.4s;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
+::view-transition-old(stagenum){animation:vt-num-out .32s cubic-bezier(.4,0,.2,1) both}
+::view-transition-new(stagenum){animation:vt-num-in .4s cubic-bezier(.2,.7,.2,1) .06s both}
+/* sublinhado do item ativo desliza até o novo item */
+::view-transition-group(navind){animation-duration:.38s;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
+@keyframes vt-zoom-out{to{opacity:0;transform:scale(.97)}}
+@keyframes vt-zoom-in{from{opacity:0;transform:scale(1.02)}}
+@keyframes vt-num-out{to{opacity:0;transform:translateY(-40px)}}
+@keyframes vt-num-in{from{opacity:0;transform:translateY(40px)}}
+@keyframes vt-fade-out{to{opacity:0}}
+@keyframes vt-fade-in{from{opacity:0}}
+/* reduced-motion: sem zoom nem deslocamento, só um fade curto */
 @media (prefers-reduced-motion:reduce){
-  @view-transition{navigation:none}
+  ::view-transition-old(root),::view-transition-old(stagenum){animation:vt-fade-out .15s linear both}
+  ::view-transition-new(root),::view-transition-new(stagenum){animation:vt-fade-in .15s linear both}
+  ::view-transition-group(stagenum),::view-transition-group(navind){animation:none}
 }
 
 /* ---------- impressão / PDF ---------- */
