@@ -24,15 +24,28 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/css/style.css">
 <script>
-  // Intro: aparece ao abrir o site e em todo F5 (em qualquer página); não aparece ao voltar
-  // de uma etapa (link interno ou botão voltar). Cobre a página até o main.js montar a intro.
-  // Failsafe: se o JS principal falhar, a capa some sozinha e o conteúdo aparece.
+  // Regra do F5: recarregar qualquer página leva ao topo da Visão geral (index).
+  // Intro: aparece ao abrir o site e no F5; não aparece na navegação interna (link ou botão voltar).
+  // A capa preta cobre a página até o main.js montar a intro; failsafe: some sozinha em 2,5s.
   (function () {
     var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
     var reload = nav.type === 'reload';
+    var isIndex = /(^|\/)(index(\.html)?)?$/.test(location.pathname);
+    if (reload && !isIndex) {                       // F5 numa etapa: vai para a Visão geral
+      try { sessionStorage.setItem('vs-reload', '1'); } catch (e) {}
+      location.replace('index.html');
+      return;
+    }
+    var fromReload = false;
+    try { fromReload = sessionStorage.getItem('vs-reload') === '1'; sessionStorage.removeItem('vs-reload'); } catch (e) {}
+    if (isIndex && (reload || fromReload)) {        // F5: sempre no topo (sem restaurar rolagem nem #âncora)
+      try { history.scrollRestoration = 'manual'; sessionStorage.removeItem('vs-nav-from'); } catch (e) {}
+      if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+      addEventListener('load', function () { scrollTo(0, 0); try { history.scrollRestoration = 'auto'; } catch (e) {} });
+    }
     var fromSite = false;
     try { fromSite = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
-    if (!reload && (nav.type === 'back_forward' || fromSite)) return;
+    if (!(reload || fromReload) && (nav.type === 'back_forward' || fromSite)) return;
     var h = document.documentElement;
     h.classList.add('intro-pending');
     setTimeout(function () { h.classList.remove('intro-pending'); }, 2500);
