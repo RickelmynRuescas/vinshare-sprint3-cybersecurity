@@ -194,43 +194,50 @@ footer{border-top:1px solid var(--line);color:var(--tx2);font:.75rem var(--mono)
   .tl .step{opacity:1}
 }
 
-/* intro de abertura (só index) */
-/* enquanto a intro está ativa a página não rola: sem barras de rolagem, nada vaza pelas bordas */
-html.intro-pending,html.intro-lock{overflow:hidden}
-html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;background:#000;z-index:2147483646}
-.intro{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;margin:0;z-index:2147483647;background:#000;overflow:hidden;cursor:pointer;transition:opacity .45s ease}
+/* intro de abertura (só index, 1ª visita da sessão) */
+html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;background:#000;z-index:999}
+.intro{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;z-index:1000;background:#000;overflow:hidden;cursor:pointer;transition:opacity .45s ease}
 .intro.out{opacity:0;pointer-events:none}
-.intro-grid{position:absolute;inset:0;z-index:0;pointer-events:none;
-  background-image:radial-gradient(rgba(143,155,170,.16) 1px,transparent 1px);background-size:24px 24px;
-  -webkit-mask-image:linear-gradient(to right,#000 0,transparent 38%,transparent 62%,#000 100%);mask-image:linear-gradient(to right,#000 0,transparent 38%,transparent 62%,#000 100%)}
-/* foto centralizada, altura total, inteira; laterais e topo dissolvidos no preto */
-.intro picture{position:absolute;inset:0;z-index:0;display:flex;justify-content:center;align-items:stretch;pointer-events:none}
-.intro img{display:block;height:100vh;height:100dvh;width:auto;max-width:100vw;aspect-ratio:900/1350;object-fit:contain;
-  -webkit-mask-image:linear-gradient(to right,transparent 0,#000 24%,#000 76%,transparent 100%),linear-gradient(to bottom,transparent 0,#000 18%,#000 88%,transparent 100%);
-  -webkit-mask-composite:source-in;
-  mask-image:linear-gradient(to right,transparent 0,#000 24%,#000 76%,transparent 100%),linear-gradient(to bottom,transparent 0,#000 18%,#000 88%,transparent 100%);
-  mask-composite:intersect;
-  opacity:0;transform:scale(1.03);transform-origin:center;filter:brightness(1.12) contrast(1.08);
-  transition:opacity .7s ease,transform 2.2s cubic-bezier(.2,.6,.2,1)}
+/* foto inteira (vertical), menor, à direita do centro, bordas dissolvidas no preto */
+.intro picture{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;justify-content:flex-end;padding:0;pointer-events:none}
+.intro img{display:block;width:auto;height:100vh;height:100dvh;max-width:66.7dvh;aspect-ratio:900/1350;object-fit:contain;
+  -webkit-mask-image:linear-gradient(to right,transparent 0,#000 45%),linear-gradient(to bottom,transparent 0,#000 12%,#000 76%,transparent 92%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent 0,#000 45%),linear-gradient(to bottom,transparent 0,#000 12%,#000 76%,transparent 92%);mask-composite:intersect;transform-origin:right center;
+  opacity:0;transform:scale(1.03);filter:brightness(1.12) contrast(1.08);transition:opacity .7s ease,transform 2.2s cubic-bezier(.2,.6,.2,1)}
 .intro.show img{opacity:1;transform:scale(1)}
-/* degradê preto embaixo para o título */
 .intro::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
-  background:linear-gradient(to top,#000 0,rgba(0,0,0,.88) 16%,rgba(0,0,0,.4) 34%,transparent 50%)}
-.intro-txt{position:absolute;z-index:2;left:16px;right:16px;bottom:clamp(40px,9vh,96px);text-align:center;
-  opacity:0;transform:translateY(8px);transition:opacity .6s ease .25s,transform .6s ease .25s;text-shadow:0 2px 20px #000}
+  background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,0,.6) 100%)}
+.intro-txt{position:absolute;z-index:2;left:clamp(16px,6vw,96px);right:16px;bottom:clamp(40px,10vh,110px);opacity:0;transform:translateY(8px);transition:opacity .6s ease .25s,transform .6s ease .25s}
 .intro.show .intro-txt{opacity:1;transform:none}
 .intro-txt b{display:block;font:700 clamp(2.2rem,6vw,4.6rem)/1 var(--sans);letter-spacing:-.03em;color:#fff}
 .intro-txt b span{color:var(--acc)}
+.intro-txt{text-shadow:0 2px 20px #000,0 0 40px #000}
 .intro-txt small{display:block;margin-top:.8rem;font:500 clamp(.68rem,1.4vw,.82rem) var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#aab4c0}
 .intro-bar{position:absolute;z-index:3;left:0;bottom:0;height:2px;width:0;background:var(--acc)}
 .intro.show .intro-bar{width:100%;transition:width var(--dur,1.6s) linear}
 .intro-skip{position:absolute;z-index:3;top:16px;right:16px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.18);color:#c9d1d9;
   font:500 .72rem var(--mono);letter-spacing:.06em;padding:.35rem .7rem;border-radius:var(--r);cursor:pointer}
 .intro-skip:hover{color:#fff;border-color:var(--acc)}
-/* mobile: mesma composição; a foto preenche a altura (laterais já dissolvidas) */
-@media (max-width:720px){.intro img{max-width:none}}
 @media (prefers-reduced-motion:reduce){
   .intro img{transform:none!important;transition:opacity .2s ease}
   .intro-txt{transform:none;transition:opacity .2s ease}
   .intro{transition:opacity .25s ease}
 }
+@media (max-width:720px){
+  .intro picture{justify-content:center;padding:0 0 18vh;align-items:center}
+  .intro img{height:min(72vh,calc(96vw * 1.5));max-width:96vw;transform-origin:center;
+    -webkit-mask-image:radial-gradient(closest-side,#000 30%,rgba(0,0,0,.55) 62%,rgba(0,0,0,.15) 84%,transparent 100%);mask-image:radial-gradient(closest-side,#000 30%,rgba(0,0,0,.55) 62%,rgba(0,0,0,.15) 84%,transparent 100%)}
+}
+
+/* intro: grid de pontos (some na região da foto) e boot de terminal */
+.intro-grid{position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:radial-gradient(rgba(143,155,170,.16) 1px,transparent 1px);background-size:24px 24px;
+  -webkit-mask-image:linear-gradient(to right,#000 0,#000 30%,transparent 60%);mask-image:linear-gradient(to right,#000 0,#000 30%,transparent 60%)}
+.intro picture{z-index:0}
+.intro-boot{margin:0 0 1.4rem;padding:0;background:none;border:0;font:13px/1.75 var(--mono);color:#7d8894;white-space:pre}
+.intro-boot .l{display:block;opacity:0;transition:opacity .25s ease}
+.intro-boot .l.on{opacity:1}
+.intro-boot .p{color:#4f5a66}
+.intro-boot .cmd{color:#aab4c0}
+.intro-boot .ok{color:var(--acc)}
+@media (max-width:720px){.intro-boot{font-size:12px}.intro-boot .l:nth-child(n+3){display:none}}
+@media (prefers-reduced-motion:reduce){.intro-boot .l{transition:none;opacity:1}}
