@@ -378,8 +378,9 @@ header.nav{view-transition-name:navbar}
 .about{align-items:center;margin-bottom:1.5rem}
 .about .cta{flex-direction:column;align-items:flex-start;margin:0}
 .team{position:relative}
-.team-btn{background:none;border:1px dashed var(--line);color:var(--tx2);font:500 .75rem var(--mono);letter-spacing:.02em;padding:.35rem .7rem;border-radius:var(--r);cursor:pointer}
-.team-btn:hover,.team-btn[aria-expanded="true"]{color:var(--tx);border-color:var(--acc);border-style:solid}
+.team-btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--bg2);border:1px solid rgba(79,140,255,.55);color:var(--tx);font:500 .76rem var(--mono);letter-spacing:.02em;padding:.45rem .8rem;border-radius:var(--r);cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.team-btn::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--acc)}
+.team-btn:hover,.team-btn[aria-expanded="true"]{border-color:var(--acc);background:var(--bg3)}
 .team-pop{position:absolute;z-index:60;top:calc(100% + 8px);left:0;min-width:min(340px,calc(100vw - 32px));background:var(--bg2);
   border:1px solid var(--line);border-radius:var(--r);padding:.5rem .9rem;box-shadow:0 14px 36px rgba(0,0,0,.5)}
 .team-pop[hidden]{display:none}
@@ -392,17 +393,13 @@ footer p{margin:.15rem 0}
 footer .team-list{color:var(--tx2);opacity:.85}
 @media print{.team{display:none}}
 
-/* index: integrantes sempre visíveis na margem esquerda (espelha o índice das etapas);
-   só a partir de 1620px, quando cabem 160px + 48px de folga + 24px de borda */
-.team-side{display:none}
-@media (min-width:1620px){
-  main{position:relative}
-  .team-side{display:block;position:absolute;width:160px;top:calc(3rem + 1rem + 1.24rem + .5rem + 7px);
-    left:calc((100% - 1180px) / 2 + 16px - 48px - 160px)}
-  .team-side ol{list-style:none;padding:0;margin:0}
-  .team-side li{padding:.45rem 0;border-top:1px solid var(--line2);font-size:.8rem;line-height:1.35;color:var(--tx)}
-  .team-side li:first-child{border-top:0;padding-top:0}
-  .team-side li span{display:block;font:500 .68rem var(--mono);color:var(--tx2);margin-bottom:.1rem}
-  .about .team{display:none}
+
+/* index: botão da turma fixo no canto superior esquerdo, acompanha a rolagem */
+.team-fab{position:fixed;z-index:45;top:calc(var(--navh,56px) + 14px);left:16px}
+@media (max-width:760px){
+  .team-btn{font-size:.7rem;padding:.4rem .65rem}
+  .team-pop{min-width:0;width:calc(100vw - 32px)}
+  .team-pop td{white-space:normal}
+  .team-pop td:first-child{white-space:nowrap}
 }
-@media print{.team-side{display:none!important}}
+@media print{.team-fab{display:none!important}}
