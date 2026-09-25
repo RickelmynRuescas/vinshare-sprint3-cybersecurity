@@ -216,11 +216,10 @@ document.querySelectorAll('.tl').forEach(tl => {
   if (btn) btn.onclick = play;
 });
 
-// Intro de abertura: só no index (body[data-intro]) e só na 1ª visita da sessão
+// Intro de abertura: só no index (body[data-intro]); o script do <head> decide quando mostrar
 (function () {
   const html = document.documentElement;
   if (!document.body.hasAttribute('data-intro') || !html.classList.contains('intro-pending')) return;
-  try { sessionStorage.setItem('vs-intro-seen', '1'); } catch (e) {}
 
   const total = REDUCED ? 600 : 1550;          // tempo em tela antes do fade-out (máx. ~2s com o fade)
   const intro = document.createElement('div');
