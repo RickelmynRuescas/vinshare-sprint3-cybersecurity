@@ -244,6 +244,8 @@ document.querySelectorAll('[data-pipe]').forEach(box => {
     out.innerHTML = '';
     btns.forEach(x => { x.classList.remove('running'); x.setAttribute('aria-pressed', 'false'); });
   };
+  const resetBtn = box.querySelector('[data-reset]');
+  if (resetBtn) resetBtn.addEventListener('click', reset);   // volta ao estado inicial, cancelando a execução em andamento
   btns.forEach(b => b.addEventListener('click', () => {
     reset();
     b.classList.add('running');

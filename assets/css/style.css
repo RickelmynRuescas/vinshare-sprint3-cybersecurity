@@ -405,3 +405,5 @@ footer p{margin:.15rem 0}
 /* simulação do pipeline: botão do cenário em execução em destaque */
 [data-pipe] .btn.running{box-shadow:0 0 0 2px var(--warn);border-color:var(--warn)}
 [data-pipe] .btn.running::after{content:" · executando";color:var(--warn)}
+[data-pipe] .pipe-reset{color:var(--tx2)}
+[data-pipe] .pipe-reset:hover{color:var(--tx)}
