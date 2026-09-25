@@ -15,7 +15,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
   nav.className = 'nav';
   nav.innerHTML = `<div class="nav-in"><a class="brand" href="index.html">VIN Share <span>· SecOps</span></a><ul>${
     pages.map((p, i) => i === cur
-      ? `<li><a href="${p[0]}" class="active" aria-current="page">${p[1]}</a></li>`
+      ? `<li><a href="${p[0]}" class="active" aria-current="page">${p[1]}<span class="ind" aria-hidden="true"></span></a></li>`
       : `<li><a href="${p[0]}">${p[1]}</a></li>`).join('')}</ul></div>`;
   nav.insertAdjacentHTML('beforeend', '<div class="progress"></div>');
   document.body.prepend(nav);
@@ -25,29 +25,6 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
   addEventListener('resize', setNavH);
   // mobile: navbar em uma linha com rolagem; mantém o item ativo visível
   const navUl = nav.querySelector('ul'), navAct = nav.querySelector('a.active');
-
-  // pílula: repousa no item ativo; no hover/foco desliza até o item; ao sair, volta ao ativo
-  const pill = document.createElement('span');
-  pill.className = 'pill';
-  pill.setAttribute('aria-hidden', 'true');
-  navUl.prepend(pill);
-  const place = a => {
-    if (!a) { pill.classList.remove('on'); return; }
-    pill.style.transform = `translateX(${a.offsetLeft}px)`;
-    pill.style.width = a.offsetWidth + 'px';
-    pill.classList.add('on');
-  };
-  const rest = () => place(navAct);
-  rest();
-  requestAnimationFrame(() => pill.classList.add('ready'));
-  (document.fonts ? document.fonts.ready : Promise.resolve()).then(rest);
-  addEventListener('resize', rest);
-  if (matchMedia('(hover:hover)').matches) {
-    navUl.addEventListener('mouseover', e => { const a = e.target.closest('a'); if (a) place(a); });
-    navUl.addEventListener('mouseleave', rest);
-  }
-  navUl.addEventListener('focusin', e => { const a = e.target.closest('a'); if (a && a.matches(':focus-visible')) place(a); });
-  navUl.addEventListener('focusout', e => { if (!navUl.contains(e.relatedTarget)) rest(); });
   if (navAct && navUl.scrollWidth > navUl.clientWidth) navUl.scrollLeft = navAct.parentElement.offsetLeft - (navUl.clientWidth - navAct.offsetWidth) / 2;
 
   const main = document.querySelector('main');
