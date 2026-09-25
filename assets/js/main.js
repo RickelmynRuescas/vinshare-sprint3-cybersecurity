@@ -221,7 +221,7 @@ document.querySelectorAll('.tl').forEach(tl => {
   const html = document.documentElement;
   if (!document.body.hasAttribute('data-intro') || !html.classList.contains('intro-pending')) return;
 
-  const total = REDUCED ? 600 : 1550;          // tempo em tela antes do fade-out (máx. ~2s com o fade)
+  const total = REDUCED ? 600 : 2800;          // tempo em tela antes do fade-out (~3,3s com o fade)
   const intro = document.createElement('div');
   intro.className = 'intro';
   intro.setAttribute('role', 'presentation');

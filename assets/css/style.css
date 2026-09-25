@@ -204,7 +204,7 @@ html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;backgr
 .intro picture{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;justify-content:flex-end;padding:0;pointer-events:none}
 .intro img{display:block;width:auto;height:100vh;height:100dvh;max-width:66.7dvh;aspect-ratio:900/1350;object-fit:contain;
   -webkit-mask-image:linear-gradient(to right,transparent 0,#000 45%),linear-gradient(to bottom,transparent 0,#000 12%,#000 76%,transparent 92%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent 0,#000 45%),linear-gradient(to bottom,transparent 0,#000 12%,#000 76%,transparent 92%);mask-composite:intersect;transform-origin:right center;
-  opacity:0;transform:scale(1.03);filter:brightness(1.12) contrast(1.08);transition:opacity .7s ease,transform 2.2s cubic-bezier(.2,.6,.2,1)}
+  opacity:0;transform:scale(1.03);filter:brightness(1.12) contrast(1.08);transition:opacity .9s ease,transform 3.2s cubic-bezier(.2,.6,.2,1)}
 .intro.show img{opacity:1;transform:scale(1)}
 .intro::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
   background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,0,.6) 100%)}
