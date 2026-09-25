@@ -199,8 +199,8 @@ html.intro-pending::after{content:"";position:fixed;inset:0;background:#000;z-in
 .intro{position:fixed;inset:0;z-index:1000;background:#000;overflow:hidden;cursor:pointer;transition:opacity .45s ease}
 .intro.out{opacity:0;pointer-events:none}
 /* foto inteira (vertical), menor, à direita do centro, bordas dissolvidas no preto */
-.intro picture{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:0 0 8vh 36vw;pointer-events:none}
-.intro img{display:block;width:auto;height:min(65vh,calc(45vw * 1.5));max-width:45vw;aspect-ratio:900/1350;object-fit:contain;
+.intro picture{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:0 0 0 30vw;pointer-events:none}
+.intro img{display:block;width:auto;height:min(90vh,calc(60vw * 1.5));max-width:60vw;aspect-ratio:900/1350;object-fit:contain;
   -webkit-mask-image:radial-gradient(closest-side,#000 30%,rgba(0,0,0,.55) 62%,rgba(0,0,0,.15) 84%,transparent 100%);mask-image:radial-gradient(closest-side,#000 30%,rgba(0,0,0,.55) 62%,rgba(0,0,0,.15) 84%,transparent 100%);
   opacity:0;transform:scale(1.03);filter:brightness(1.12) contrast(1.08);transition:opacity .7s ease,transform 2.2s cubic-bezier(.2,.6,.2,1)}
 .intro.show img{opacity:1;transform:scale(1)}
@@ -210,6 +210,7 @@ html.intro-pending::after{content:"";position:fixed;inset:0;background:#000;z-in
 .intro.show .intro-txt{opacity:1;transform:none}
 .intro-txt b{display:block;font:700 clamp(2.2rem,6vw,4.6rem)/1 var(--sans);letter-spacing:-.03em;color:#fff}
 .intro-txt b span{color:var(--acc)}
+.intro-txt{text-shadow:0 2px 20px #000,0 0 40px #000}
 .intro-txt small{display:block;margin-top:.8rem;font:500 clamp(.68rem,1.4vw,.82rem) var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#aab4c0}
 .intro-bar{position:absolute;z-index:2;left:0;bottom:0;height:2px;width:0;background:var(--acc)}
 .intro.show .intro-bar{width:100%;transition:width var(--dur,1.6s) linear}
@@ -222,6 +223,6 @@ html.intro-pending::after{content:"";position:fixed;inset:0;background:#000;z-in
   .intro{transition:opacity .25s ease}
 }
 @media (max-width:720px){
-  .intro picture{padding:0 0 32vh;align-items:center}
-  .intro img{height:min(55vh,calc(80vw * 1.5));max-width:80vw}
+  .intro picture{padding:0 0 18vh;align-items:center}
+  .intro img{height:min(72vh,calc(96vw * 1.5));max-width:96vw}
 }
