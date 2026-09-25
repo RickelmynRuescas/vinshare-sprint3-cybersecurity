@@ -36,7 +36,13 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
     main.append(pn);
   }
   const f = document.createElement('footer');
-  f.innerHTML = 'FIAP · Ford Challenge · Sprint 3 — Cybersecurity · Turma 3ESPV · Conteúdo técnico ilustrativo (mocado) para fins acadêmicos';
+  const team = [
+    ['Heloísa Fleury Jardim', 'RM556378'], ['Juan Fuentes Rufino', 'RM557673'], ['Rickelmyn de Souza Ruescas', 'RM556055'],
+    ['Paulo Henrique Monteiro Golovanevsky', 'RM555300'], ['Pedro Henrique Silva Batista', 'RM558137'],
+  ];
+  f.innerHTML = '<p>FIAP · Ford Challenge · Sprint 3 — Cybersecurity · Turma 3ESPV</p>' +
+    `<p class="team-list">${team.map(([n, rm]) => `${n} (${rm})`).join(' · ')}</p>` +
+    '<p>Conteúdo técnico ilustrativo (mocado) para fins acadêmicos</p>';
   document.body.append(f);
 
   // barra de progresso de leitura
@@ -342,4 +348,25 @@ document.querySelectorAll('.tl').forEach(tl => {
     });
   });
   addEventListener('afterprint', () => { opened.forEach(d => d.open = false); opened = []; });
+})();
+
+// Index: popover com os integrantes (fecha com clique fora, Esc ou no próprio botão)
+(function () {
+  const btn = document.querySelector('.team-btn'), pop = document.getElementById('team-pop');
+  if (!btn || !pop) return;
+  const close = (focusBtn = true) => {
+    if (pop.hidden) return;
+    pop.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+    if (focusBtn) btn.focus();
+  };
+  btn.addEventListener('click', () => {
+    if (!pop.hidden) return close();
+    pop.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    pop.focus();
+  });
+  document.addEventListener('click', e => { if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) close(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !pop.hidden) close(); });
+  pop.addEventListener('focusout', e => { if (!pop.contains(e.relatedTarget) && e.relatedTarget !== btn) close(false); });
 })();

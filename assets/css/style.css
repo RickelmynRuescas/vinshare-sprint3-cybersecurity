@@ -275,6 +275,11 @@ summary:focus-visible,.btn:focus-visible,button:focus-visible{outline:2px solid 
 .toc a:hover{color:var(--tx);text-decoration:none}
 .toc a.on{color:var(--tx);border-left-color:var(--acc)}
 .toc a.on span{color:var(--acc);opacity:1}
+/* >=1280px: todo <main> ocupa a largura total com o mesmo recuo (mesma caixa em todas as páginas,
+   para a transição entre páginas não esticar o bloco) */
+@media (min-width:1280px){
+  main{max-width:none;padding-left:calc((100% - 1180px) / 2 + 16px);padding-right:calc((100% - 1180px) / 2 + 16px)}
+}
 /* >=1280px: o texto mantém a largura (890px) e o alinhamento com a navbar; o índice vai
    para a margem direita da tela, com no mínimo 64px de folga */
 @media (min-width:1280px){
@@ -313,7 +318,8 @@ main{view-transition-name:main}
 ::view-transition-old(main){animation:vt-out .28s cubic-bezier(.4,0,.2,1) both}
 ::view-transition-new(main){animation:vt-in .32s cubic-bezier(.2,.7,.2,1) .04s both}
 ::view-transition-group(navind){animation-duration:.35s;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
-::view-transition-group(stagenum){animation-duration:.35s;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
+::view-transition-group(main){animation:none}          /* sem esticar: só o fade/slide do old/new */
+::view-transition-group(stagenum){animation:none}      /* número só em crossfade */
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.2s}
 @keyframes vt-out{to{opacity:0;transform:translateY(-12px)}}
 @keyframes vt-in{from{opacity:0;transform:translateY(16px)}}
@@ -354,3 +360,21 @@ main{view-transition-name:main}
   footer{border-top:1px solid #ccd2da;color:#555}
 }
 @media (min-width:1280px){main.has-toc .hero .num{right:0}}   /* hero já ocupa até a coluna do índice */
+
+/* index: "O que é" ao lado dos atalhos + integrantes em popover */
+.about{align-items:center;margin-bottom:1.5rem}
+.about .cta{flex-direction:column;align-items:flex-start;margin:0}
+.team{position:relative}
+.team-btn{background:none;border:1px dashed var(--line);color:var(--tx2);font:500 .75rem var(--mono);letter-spacing:.02em;padding:.35rem .7rem;border-radius:var(--r);cursor:pointer}
+.team-btn:hover,.team-btn[aria-expanded="true"]{color:var(--tx);border-color:var(--acc);border-style:solid}
+.team-pop{position:absolute;z-index:60;top:calc(100% + 8px);left:0;min-width:min(340px,calc(100vw - 32px));background:var(--bg2);
+  border:1px solid var(--line);border-radius:var(--r);padding:.5rem .9rem;box-shadow:0 14px 36px rgba(0,0,0,.5)}
+.team-pop[hidden]{display:none}
+.team-pop table{font-size:.86rem}
+.team-pop td{padding:.4rem .9rem .4rem 0;white-space:nowrap}
+.team-pop:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+/* rodapé com os integrantes */
+footer p{margin:.15rem 0}
+footer .team-list{color:var(--tx2);opacity:.85}
+@media print{.team{display:none}}
