@@ -391,9 +391,11 @@ $ mosquitto_pub ... -t vinshare/telemetry/TCU-00A1C3 -f ponto.json
     <span class="k">expose:</span> [<span class="s">"8000"</span>]                   <span class="c"># sem ports: só o gateway alcança</span>
     <span class="k">networks:</span> [backend]
     <span class="k">volumes:</span> [sqlite_data:/data]         <span class="c"># única área gravável</span>
-    <span class="k">secrets:</span> [jwt_secret, pii_keys, whatsapp_token]
+    <span class="k">secrets:</span> [jwt_secret, pii_keys, whatsapp_token, redis_password]
     <span class="k">environment:</span>
       <span class="k">DATABASE_URL:</span> sqlite:////data/vinshare.db
+      <span class="k">REDIS_URL:</span> redis://redis:6379/0
+      <span class="k">REDIS_PASSWORD_FILE:</span> /run/secrets/redis_password
       <span class="k">JWT_SECRET_FILE:</span> /run/secrets/jwt_secret
       <span class="k">PII_KEYS_FILE:</span> /run/secrets/pii_keys
 
@@ -408,6 +410,14 @@ $ mosquitto_pub ... -t vinshare/telemetry/TCU-00A1C3 -f ponto.json
     <span class="k">image:</span> ghcr.io/vinshare/iot-ingestor:8c41e2a
     <span class="k">networks:</span> [iot, backend]           <span class="c"># envia à api; não acessa o SQLite</span>
 
+  <span class="k">redis:</span>                              <span class="c"># backend do rate limit (slowapi)</span>
+    &lt;&lt;: *hardening
+    <span class="k">image:</span> redis:7-alpine
+    <span class="k">networks:</span> [backend]                 <span class="c"># sem ports: só a api alcança</span>
+    <span class="k">secrets:</span> [redis_password]
+    <span class="k">command:</span> [<span class="s">"sh"</span>, <span class="s">"-c"</span>, <span class="s">'exec redis-server --requirepass "$$(cat /run/secrets/redis_password)" --save "" --appendonly no'</span>]
+                                        <span class="c"># contadores efêmeros: nada gravado em disco</span>
+
 <span class="k">networks:</span>
   <span class="k">edge:</span> {}
   <span class="k">iot:</span>     { <span class="k">internal:</span> true }
@@ -419,6 +429,7 @@ $ mosquitto_pub ... -t vinshare/telemetry/TCU-00A1C3 -f ponto.json
   <span class="k">whatsapp_token:</span> { <span class="k">external:</span> true }
   <span class="k">tls_cert:</span>       { <span class="k">external:</span> true }
   <span class="k">tls_key:</span>        { <span class="k">external:</span> true }
+  <span class="k">redis_password:</span> { <span class="k">external:</span> true }
 
 <span class="k">volumes:</span>
   <span class="k">sqlite_data:</span> {}                     <span class="c"># banco SQLite (PII cifrada por campo)</span></pre>
