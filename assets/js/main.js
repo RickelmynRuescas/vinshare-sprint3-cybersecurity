@@ -217,7 +217,7 @@ document.querySelectorAll('.tl').forEach(tl => {
 });
 
 // Parallax sutil na foto do hero (index); desligado com reduced-motion
-const heroImg = document.querySelector('.hero-img img');
+const heroImg = document.querySelector('.hero-bg img');
 if (heroImg && !REDUCED) {
   let ticking = false;
   const move = () => {
