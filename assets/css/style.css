@@ -230,16 +230,8 @@ html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;backgr
     -webkit-mask-image:radial-gradient(closest-side,#000 30%,rgba(0,0,0,.55) 62%,rgba(0,0,0,.15) 84%,transparent 100%);mask-image:radial-gradient(closest-side,#000 30%,rgba(0,0,0,.55) 62%,rgba(0,0,0,.15) 84%,transparent 100%)}
 }
 
-/* intro: grid de pontos (some na região da foto) e boot de terminal */
+/* intro: grid de pontos (some na região da foto) */
 .intro-grid{position:absolute;inset:0;z-index:0;pointer-events:none;
   background-image:radial-gradient(rgba(143,155,170,.16) 1px,transparent 1px);background-size:24px 24px;
   -webkit-mask-image:linear-gradient(to right,#000 0,#000 30%,transparent 60%);mask-image:linear-gradient(to right,#000 0,#000 30%,transparent 60%)}
 .intro picture{z-index:0}
-.intro-boot{margin:0 0 1.4rem;padding:0;background:none;border:0;font:13px/1.75 var(--mono);color:#7d8894;white-space:pre}
-.intro-boot .l{display:block;opacity:0;transition:opacity .25s ease}
-.intro-boot .l.on{opacity:1}
-.intro-boot .p{color:#4f5a66}
-.intro-boot .cmd{color:#aab4c0}
-.intro-boot .ok{color:var(--acc)}
-@media (max-width:720px){.intro-boot{font-size:12px}.intro-boot .l:nth-child(n+3){display:none}}
-@media (prefers-reduced-motion:reduce){.intro-boot .l{transition:none;opacity:1}}
