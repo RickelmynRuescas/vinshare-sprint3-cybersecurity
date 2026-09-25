@@ -195,8 +195,10 @@ footer{border-top:1px solid var(--line);color:var(--tx2);font:.75rem var(--mono)
 }
 
 /* intro de abertura (só index, 1ª visita da sessão) */
-html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;background:#000;z-index:999}
-.intro{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;z-index:1000;background:#000;overflow:hidden;cursor:pointer;transition:opacity .45s ease}
+/* enquanto a intro está ativa a página não rola: sem barra de rolagem vazando a textura do site */
+html.intro-pending,html.intro-lock{overflow:hidden}
+html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;background:#000;z-index:2147483646}
+.intro{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;margin:0;z-index:2147483647;background:#000;overflow:hidden;cursor:pointer;transition:opacity .45s ease}
 .intro.out{opacity:0;pointer-events:none}
 /* foto inteira (vertical), menor, à direita do centro, bordas dissolvidas no preto */
 .intro picture{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;justify-content:flex-end;padding:0;pointer-events:none}

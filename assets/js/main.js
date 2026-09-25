@@ -244,6 +244,7 @@ document.querySelectorAll('.tl').forEach(tl => {
     <div class="intro-bar"></div>
     <button type="button" class="intro-skip">pular ⏎</button>`;
   document.body.append(intro);
+  html.classList.add('intro-lock');            // página travada (sem scrollbar) durante a intro
   html.classList.remove('intro-pending');      // a intro assume a capa preta
 
   const img = intro.querySelector('img');
@@ -278,6 +279,7 @@ document.querySelectorAll('.tl').forEach(tl => {
     }
     done = true;
     intro.classList.add('out');
+    html.classList.remove('intro-lock');
     ['click', 'keydown', 'wheel', 'touchstart'].forEach(ev => removeEventListener(ev, end, true));
     setTimeout(() => intro.remove(), REDUCED ? 50 : 500);
   };
