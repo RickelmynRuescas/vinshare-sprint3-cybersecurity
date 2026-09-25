@@ -229,10 +229,8 @@ document.querySelectorAll('.tl').forEach(tl => {
   intro.style.setProperty('--dur', total + 'ms');
   intro.innerHTML = `
     <picture>
-      <source media="(max-width:720px)" srcset="assets/img/hero-ford.webp" type="image/webp">
-      <source media="(max-width:720px)" srcset="assets/img/hero-ford-900.jpg">
-      <source srcset="assets/img/intro-ford-1600.webp" type="image/webp">
-      <img src="assets/img/intro-ford-1600.jpg" width="1600" height="1000" alt="" decoding="async" fetchpriority="high">
+      <source srcset="assets/img/hero-ford.webp" type="image/webp">
+      <img src="assets/img/hero-ford-900.jpg" width="900" height="1350" alt="" decoding="async" fetchpriority="high">
     </picture>
     <div class="intro-txt"><b>VIN Share <span>·</span> SecOps</b><small>FIAP · Ford Challenge · Sprint 3 — Cybersecurity</small></div>
     <div class="intro-bar"></div>
