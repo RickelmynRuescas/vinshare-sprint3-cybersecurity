@@ -215,3 +215,15 @@ document.querySelectorAll('.tl').forEach(tl => {
   onVisible(tl, play);
   if (btn) btn.onclick = play;
 });
+
+// Parallax sutil na foto do hero (index); desligado com reduced-motion
+const heroImg = document.querySelector('.hero-img img');
+if (heroImg && !REDUCED) {
+  let ticking = false;
+  const move = () => {
+    const y = Math.min(scrollY, 600);
+    heroImg.style.setProperty('--py', (y * 0.02).toFixed(1) + 'px');   // máx. 12px, dentro da margem do scale
+    ticking = false;
+  };
+  addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(move); } }, { passive: true });
+}
