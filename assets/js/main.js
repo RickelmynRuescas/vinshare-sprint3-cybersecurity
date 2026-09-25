@@ -85,19 +85,6 @@ const WALK_STEP = 160;   // ms por item: sublinhado da navbar e contagem do núm
   const f = document.createElement('footer');
   f.innerHTML = '<p>FIAP · Ford Challenge · Sprint 3 — Cybersecurity · Turma 3ESPV</p>';
   document.body.append(f);
-
-  // brilho que segue o cursor (só desktop, sem reduced-motion)
-  if (matchMedia('(pointer:fine)').matches && !REDUCED) {
-    const g = document.createElement('div');
-    g.className = 'glow';
-    document.body.prepend(g);
-    addEventListener('pointermove', e => {
-      g.style.setProperty('--mx', e.clientX + 'px');
-      g.style.setProperty('--my', e.clientY + 'px');
-      g.classList.add('on');
-    }, { passive: true });
-    document.addEventListener('pointerleave', () => g.classList.remove('on'));
-  }
 })();
 
 // Índice da página (etapas): lateral sticky no desktop, faixa de atalhos no mobile
