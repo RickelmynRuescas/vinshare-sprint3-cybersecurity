@@ -15,7 +15,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
   nav.className = 'nav';
   nav.innerHTML = `<div class="nav-in"><a class="brand" href="index.html">VIN Share <span>· SecOps</span></a><ul>${
     pages.map((p, i) => i === cur
-      ? `<li><a href="${p[0]}" class="active" aria-current="page">${p[1]}<span class="ind" aria-hidden="true"></span></a></li>`
+      ? `<li><a href="${p[0]}" class="active" aria-current="page">${p[1]}</a></li>`
       : `<li><a href="${p[0]}">${p[1]}</a></li>`).join('')}</ul></div>`;
   nav.insertAdjacentHTML('beforeend', '<div class="progress"></div>');
   document.body.prepend(nav);
@@ -25,7 +25,51 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
   addEventListener('resize', setNavH);
   // mobile: navbar em uma linha com rolagem; mantém o item ativo visível
   const navUl = nav.querySelector('ul'), navAct = nav.querySelector('a.active');
-  if (navAct && navUl.scrollWidth > navUl.clientWidth) navUl.scrollLeft = navAct.parentElement.offsetLeft - (navUl.clientWidth - navAct.offsetWidth) / 2;
+  const keepActiveVisible = smooth => {
+    if (navAct && navUl.scrollWidth > navUl.clientWidth)
+      navUl.scrollTo({ left: navAct.parentElement.offsetLeft - (navUl.clientWidth - navAct.offsetWidth) / 2, behavior: smooth ? 'smooth' : 'auto' });
+  };
+
+  // sublinhado do item ativo: na troca de página "caminha" do item anterior até o ativo, item a item
+  const links = [...navUl.querySelectorAll('a')];
+  const ind = document.createElement('span');
+  ind.className = 'ind';
+  ind.setAttribute('aria-hidden', 'true');
+  navUl.append(ind);
+  const place = a => {
+    const pad = parseFloat(getComputedStyle(a).paddingLeft) || 0;
+    ind.style.transform = `translateX(${a.offsetLeft + pad}px)`;
+    ind.style.width = (a.offsetWidth - pad * 2) + 'px';
+  };
+  let from = null;
+  try { from = sessionStorage.getItem('vs-nav-from'); sessionStorage.removeItem('vs-nav-from'); } catch (e) {}
+  from = from === null ? null : +from;
+  const walk = from !== null && !REDUCED && cur >= 0 && from !== cur && links[from];
+  let walking = !!walk;                            // enquanto caminha, o resize não reposiciona
+  if (!navAct) ind.hidden = true;
+  else place(walk ? links[from] : navAct);           // antes do 1º render: já no ponto de partida
+  if (!walk) keepActiveVisible(false);
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+    if (!navAct) return;
+    if (!walk) { place(navAct); return; }
+    place(links[from]);
+    const dir = cur > from ? 1 : -1, steps = Math.abs(cur - from), dur = Math.min(120, 600 / steps);
+    ind.style.setProperty('--step', dur + 'ms');
+    ind.getBoundingClientRect();                     // aplica a posição inicial antes de ligar a transição
+    ind.classList.add('walk');
+    let i = from;
+    const step = () => {
+      i += dir;
+      place(links[i]);
+      if (i !== cur) setTimeout(step, dur);
+      else setTimeout(() => { ind.classList.remove('walk'); walking = false; keepActiveVisible(true); }, dur);
+    };
+    requestAnimationFrame(step);
+  });
+  addEventListener('resize', () => { if (navAct && !walking) place(navAct); });
+  // guarda o item atual para a próxima página (F5 cai no mesmo item: sem caminhada)
+  addEventListener('pagehide', () => { try { if (cur >= 0) sessionStorage.setItem('vs-nav-from', cur); } catch (e) {} });
+  addEventListener('pageshow', e => { if (e.persisted) try { sessionStorage.removeItem('vs-nav-from'); } catch (x) {} });
 
   const main = document.querySelector('main');
   if (cur >= 0 && main) {
