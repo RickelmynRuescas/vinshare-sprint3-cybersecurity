@@ -87,12 +87,15 @@ const FONTS_READY = document.fonts ? document.fonts.ready : Promise.resolve();
     pn.className = 'pn';
     pn.innerHTML = (cur > 0 ? `<a class="btn ghost" href="${pages[cur - 1][0]}">← ${pages[cur - 1][1]}</a>` : '<span></span>') +
       (cur < pages.length - 1 ? `<a class="btn" href="${pages[cur + 1][0]}">${pages[cur + 1][1]} →</a>`
-        : '<a class="btn" href="index.html#checklist">Voltar à visão geral →</a>');
+        : document.getElementById('encerramento')
+          ? '<a class="btn" href="#encerramento">Encerramento ↓</a>'
+          : '<a class="btn" href="index.html#checklist">Voltar à visão geral →</a>');
     main.append(pn);
   }
   const f = document.createElement('footer');
   f.innerHTML = '<p>FIAP · Ford Challenge · Sprint 3 — Cybersecurity · Turma 3ESPV</p>';
-  document.body.append(f);
+  const closing = document.getElementById('encerramento');   // Etapa 4: o rodapé fica antes do encerramento
+  if (closing) closing.before(f); else document.body.append(f);
 })();
 
 // Índice da página (etapas): lateral sticky no desktop, faixa de atalhos no mobile
@@ -487,4 +490,32 @@ document.querySelectorAll('.tl').forEach(tl => {
         .onfinish = () => old.remove();
     }
   });
+})();
+
+// Etapa 4: tela de encerramento depois do rodapé, com efeito "cortina" (rolagem normal, nada é interceptado).
+// O fim da página (conteúdo + rodapé) fica preso embaixo (sticky) e o encerramento sobe por cima dele.
+(function () {
+  const closing = document.getElementById('encerramento');
+  const main = document.querySelector('main'), foot = document.querySelector('footer');
+  if (!closing || !main || !foot) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'page-end';
+  const hint = document.createElement('p');
+  hint.className = 'scroll-hint';
+  hint.innerHTML = '<span aria-hidden="true">↓</span> continue rolando';
+  main.before(wrap);
+  wrap.append(main, hint, foot);
+  if (!REDUCED) {
+    // preso quando a base do bloco encosta na base da tela: top = altura da tela − altura do bloco
+    const fit = () => wrap.style.setProperty('--end-top', (innerHeight - wrap.offsetHeight) + 'px');
+    fit();
+    new ResizeObserver(fit).observe(wrap);
+    addEventListener('resize', fit);
+    document.documentElement.classList.add('has-curtain');
+  }
+  // foto/texto entram em cena; o índice "Nesta página" some enquanto o encerramento está na tela
+  new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) closing.classList.add('in');
+    document.body.classList.toggle('closing-on', e.intersectionRatio > .25);
+  }), { threshold: [0, .25, .5] }).observe(closing);
 })();
