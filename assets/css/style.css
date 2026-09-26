@@ -51,6 +51,10 @@ main ul,main ol{padding-left:1.2rem}
 /* layouts */
 .grid{display:grid;gap:1rem 2rem;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
 .g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr))}
+/* Etapa 1 (SCA × Container Security): lado a lado a partir de 1200px; empilhados, texto limitado a ~70ch */
+@media (min-width:1200px){.duo{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.duo>*{min-width:0}
+.duo .card :is(p,ul){max-width:70ch}
 .split{display:grid;grid-template-columns:2fr 3fr;gap:2.5rem;align-items:start;margin:1rem 0}
 .split>*{min-width:0}
 .split>div>:first-child{margin-top:0}
