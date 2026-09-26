@@ -40,7 +40,7 @@ h2::before{content:counter(sec,decimal-leading-zero);display:block;font:500 .8re
 h3{font-size:1.05rem;margin:1.8rem 0 .6rem}
 h4{font-size:.95rem;margin-bottom:.4rem}
 p,ul,ol{margin-bottom:.9rem}
-main :is(p,ul,ol):not(td *,th *,.deliver *,.toc *,.card *,.note){max-width:70ch}
+main :is(p,ul,ol):not(td *,th *,.toc *,.card *,.note){max-width:70ch}
 main ul,main ol{padding-left:1.2rem}
 .lead{color:var(--tx2);font-size:1.1rem;max-width:720px}
 .tag{display:inline-block;font:500 .72rem var(--mono);padding:.1rem .45rem;border-radius:2px;background:var(--bg3);color:var(--tx2);border:1px solid var(--line)}
@@ -253,13 +253,6 @@ html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;backgr
 /* index: atalhos logo abaixo do topo */
 .cta{display:flex;flex-wrap:wrap;gap:.6rem;margin:.2rem 0 2rem}
 
-/* etapas: entrega esperada */
-.deliver{border:1px solid var(--line);border-left:2px solid var(--acc);border-radius:var(--r);padding:.7rem 1rem;margin:.4rem 0 .8rem;background:rgba(18,22,29,.5)}
-.deliver .eyebrow{display:block;margin-bottom:.3rem}
-.deliver ul{list-style:none;padding:0;margin:0;display:grid;gap:0 1.5rem;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
-.deliver a{display:flex;gap:.5rem;align-items:baseline;padding:.15rem 0;color:var(--tx);font-size:.9rem;line-height:1.45}
-.deliver a:hover{color:var(--acc);text-decoration:none}
-.deliver .ck{font:600 .8rem var(--mono);color:var(--ok)}
 
 /* índice da página */
 .toc-t{font:500 .78rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);margin-bottom:.6rem}
@@ -338,11 +331,10 @@ html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;backgr
   .codewrap>pre.code{-webkit-mask-image:none!important;mask-image:none!important}
   .c{color:#6a737d}.k{color:#cf222e}.s{color:#0a3069}.f{color:#8250df}.g{color:#1a7f37}.r{color:#cf222e}.y{color:#9a6700}.b{color:#0969da}
   .mermaid{background:#0c0f14!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .tag,.stats,.bars span,.deliver{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .deliver{background:#f6f8fa}
+  .tag,.stats,.bars span{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .tbl{overflow:visible}
   .split,.grid.g2{display:block}
-  table,pre,.mermaid,.term,.codewrap,.card.box,.deliver{break-inside:avoid}
+  table,pre,.mermaid,.term,.codewrap,.card.box{break-inside:avoid}
   tr{break-inside:avoid}
   h2,h3{break-inside:avoid;break-after:avoid}
   .fn,.eyebrow{break-after:avoid}

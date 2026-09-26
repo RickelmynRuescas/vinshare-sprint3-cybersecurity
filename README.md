@@ -34,7 +34,7 @@ Entrega de segurança do projeto **VIN Share / Ford Customer 360**: uma camada d
 | 3 · Logs, Alertas e Resposta a Incidentes | 2,0 | Plano de monitoramento, stack ELK, logs JSON estruturados, dashboard e regras estilo Suricata, gatilhos de alerta (API, mobile, IoT, ML), SANS PICERL com incidente simulado | [etapa3-logs-incidentes.html](https://vinshare-sprint3-cybersecurity.vercel.app/etapa3-logs-incidentes.html) |
 | 4 · Pesquisa de Vulnerabilidades (OWASP) | 2,5 | OWASP Top 10, API Top 10, Mobile Top 10, ASVS, matriz de mapeamento com análise de riscos (probabilidade × impacto), STRIDE, LGPD, plano de mitigação e de segurança contínua | [etapa4-owasp.html](https://vinshare-sprint3-cybersecurity.vercel.app/etapa4-owasp.html) |
 
-O `index.html` traz a visão geral do projeto, a arquitetura com a superfície de ataque, os integrantes (botão "Integrantes") e o checklist de conformidade agrupado por etapa, que liga cada entregável à seção onde ele está. Cada etapa abre com o bloco "Entrega esperada" e tem o índice "Nesta página".
+O `index.html` traz a visão geral do projeto, a arquitetura com a superfície de ataque, os integrantes (botão "Integrantes") e o checklist de conformidade agrupado por etapa, que liga cada entregável à seção onde ele está. Cada etapa tem o índice "Nesta página".
 
 ## Estrutura
 
