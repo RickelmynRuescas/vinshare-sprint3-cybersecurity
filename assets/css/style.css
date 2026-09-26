@@ -16,9 +16,10 @@ a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
 /* nav */
 header.nav{position:sticky;top:0;z-index:50;background:rgba(12,15,20,.72);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--line2);view-transition-name:navbar}
 .nav-in{max-width:1180px;margin:auto;display:flex;align-items:center;gap:1rem;padding:.6rem 16px;flex-wrap:wrap}
-.brand{font:600 .9rem var(--mono);color:var(--tx);white-space:nowrap}.brand span{color:var(--acc)}
+.brand{font:600 .9rem var(--mono);color:var(--tx);white-space:nowrap}.brand .b-long span{color:var(--acc)}
+.brand .b-short{display:none}.brand .b-short i{font-style:normal;color:var(--acc)}
 .brand:hover{text-decoration:none}
-.nav ul{position:relative;display:flex;gap:.2rem;list-style:none;flex-wrap:wrap;margin-left:auto}
+.nav ul{position:relative;display:flex;gap:.2rem;list-style:none;flex-wrap:wrap;margin:0 0 0 auto}
 .nav ul a{position:relative;display:block;padding:.35rem .6rem;color:var(--tx2);font:.8rem var(--mono)}
 .nav ul a:hover{color:var(--tx);text-decoration:none}
 .nav ul a.active{color:var(--tx)}
@@ -32,13 +33,14 @@ main{max-width:1180px;margin:auto;padding:3rem 16px 4rem;counter-reset:sec}
 /* topo da página */
 .hero{position:relative;padding:1rem 0 .5rem}
 .hero .num{position:absolute;right:min(0px,calc(1180px / 2 - 16px - 50vw + 40px));top:-1.5rem;font:700 clamp(6rem,18vw,12rem)/1 var(--mono);color:var(--tx);opacity:.05;pointer-events:none;user-select:none;letter-spacing:-.05em;overflow:hidden;height:1em}
-.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.eyebrow{font:500 .8rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
 h1{font-size:clamp(2rem,5.2vw,3.4rem);line-height:1.08;letter-spacing:-.025em;margin:.5rem 0 .9rem;max-width:900px}
 h2{font-size:1.5rem;letter-spacing:-.01em;margin:3.5rem 0 1rem;padding-top:1.2rem;border-top:1px solid var(--line);counter-increment:sec}
-h2::before{content:counter(sec,decimal-leading-zero);display:block;font:500 .72rem var(--mono);color:var(--acc);letter-spacing:.08em;margin-bottom:.3rem}
+h2::before{content:counter(sec,decimal-leading-zero);display:block;font:500 .8rem var(--mono);color:var(--acc);letter-spacing:.08em;margin-bottom:.3rem}
 h3{font-size:1.05rem;margin:1.8rem 0 .6rem}
 h4{font-size:.95rem;margin-bottom:.4rem}
 p,ul,ol{margin-bottom:.9rem}
+main :is(p,ul,ol):not(td *,th *,.deliver *,.toc *,.card *,.note){max-width:70ch}
 main ul,main ol{padding-left:1.2rem}
 .lead{color:var(--tx2);font-size:1.1rem;max-width:720px}
 .tag{display:inline-block;font:500 .72rem var(--mono);padding:.1rem .45rem;border-radius:2px;background:var(--bg3);color:var(--tx2);border:1px solid var(--line)}
@@ -114,7 +116,7 @@ pre[data-type] .ln.cur::after{content:"▋";visibility:visible;animation:blink 1
 .tbl{overflow-x:auto;margin:.5rem 0 1.4rem;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 table{border-collapse:collapse;width:100%;font-size:.88rem}
 th,td{padding:.6rem .75rem .6rem 0;text-align:left;border-bottom:1px solid var(--line2);vertical-align:top}
-th{font:500 .72rem var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--tx2);white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font:500 .76rem var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--tx2);white-space:nowrap;border-bottom:1px solid var(--line)}
 tr:last-child td{border-bottom:0}
 td:first-child{font-family:var(--mono);font-size:.82rem}
 td:first-child:not(:has(b)){white-space:nowrap}
@@ -169,16 +171,18 @@ th.role small{display:block;margin-top:.2rem;font:400 .7rem var(--mono);color:va
 footer{border-top:1px solid var(--line);color:var(--tx2);font:.75rem var(--mono);padding:1.5rem 16px;text-align:left;max-width:1180px;margin:auto}
 .pn{display:flex;justify-content:space-between;gap:1rem;margin-top:4rem;flex-wrap:wrap}
 @media (max-width:760px){
-  .nav-in{flex-wrap:nowrap;gap:.5rem}
-  .brand{flex:none}
-  .nav ul{flex-wrap:nowrap;overflow-x:auto;margin-left:0;min-width:0;scrollbar-width:none;
-    -webkit-mask-image:linear-gradient(to right,transparent 0,#000 10px,#000 calc(100% - 18px),transparent);mask-image:linear-gradient(to right,transparent 0,#000 10px,#000 calc(100% - 18px),transparent)}
+  .nav-in{flex-wrap:nowrap;gap:.75rem;align-items:center}
+  .brand{flex:none;line-height:1;padding-right:.75rem;border-right:1px solid var(--line)}
+  .brand .b-long{display:none}.brand .b-short{display:inline}
+  .nav ul{flex-wrap:nowrap;overflow-x:auto;margin-left:0;min-width:0;flex:1;align-items:center;scrollbar-width:none;--fl:0px;--fr:0px;
+    -webkit-mask-image:linear-gradient(to right,transparent 0,#000 var(--fl),#000 calc(100% - var(--fr)),transparent 100%);
+    mask-image:linear-gradient(to right,transparent 0,#000 var(--fl),#000 calc(100% - var(--fr)),transparent 100%)}
+  .nav ul.fade-l{--fl:28px}.nav ul.fade-r{--fr:28px}
   .nav ul::-webkit-scrollbar{display:none}
   .nav ul li{flex:none}
   .nav ul a{padding:.3rem .45rem;font-size:.72rem;white-space:nowrap}
   main{padding-top:2rem}
 }
-@media (max-width:420px){.brand span{display:none}}
 
 /* scrollbars escuras */
 *{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
@@ -246,18 +250,18 @@ html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;backgr
 .cta{display:flex;flex-wrap:wrap;gap:.6rem;margin:.2rem 0 2rem}
 
 /* etapas: entrega esperada */
-.deliver{border:1px solid var(--line);border-left:2px solid var(--acc);border-radius:var(--r);padding:1rem 1.2rem;margin:.5rem 0 1rem;background:rgba(18,22,29,.5)}
-.deliver .eyebrow{display:block;margin-bottom:.5rem}
-.deliver ul{list-style:none;padding:0;margin:0;display:grid;gap:.15rem 2rem;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
-.deliver a{display:flex;gap:.6rem;align-items:baseline;padding:.3rem 0;color:var(--tx)}
+.deliver{border:1px solid var(--line);border-left:2px solid var(--acc);border-radius:var(--r);padding:.7rem 1rem;margin:.4rem 0 .8rem;background:rgba(18,22,29,.5)}
+.deliver .eyebrow{display:block;margin-bottom:.3rem}
+.deliver ul{list-style:none;padding:0;margin:0;display:grid;gap:0 1.5rem;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.deliver a{display:flex;gap:.5rem;align-items:baseline;padding:.15rem 0;color:var(--tx);font-size:.9rem;line-height:1.45}
 .deliver a:hover{color:var(--acc);text-decoration:none}
 .deliver .ck{font:600 .8rem var(--mono);color:var(--ok)}
 
 /* índice da página */
-.toc-t{font:500 .7rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);margin-bottom:.6rem}
+.toc-t{font:500 .78rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);margin-bottom:.6rem}
 .toc ol{list-style:none;padding:0;margin:0}
 .toc a{display:flex;gap:.6rem;padding:.35rem 0 .35rem .8rem;border-left:1px solid var(--line);color:var(--tx2);font-size:.85rem;line-height:1.35}
-.toc a span{font:500 .72rem var(--mono);color:var(--tx2);opacity:.7;padding-top:.1rem}
+.toc a span{font:500 .78rem var(--mono);color:var(--tx2);opacity:.7;padding-top:.1rem}
 .toc a:hover{color:var(--tx);text-decoration:none}
 .toc a.on{color:var(--tx);border-left-color:var(--acc)}
 .toc a.on span{color:var(--acc);opacity:1}
@@ -291,6 +295,7 @@ html.intro-pending::after{content:"";position:fixed;inset:0;height:100dvh;backgr
   transition:opacity .25s ease,transform .25s ease,visibility .25s}
 .totop.on{opacity:1;visibility:visible;transform:none}
 .totop:hover{border-color:var(--acc)}
+@media (max-width:760px){.totop{width:36px;height:36px;right:12px;bottom:12px;font-size:.9rem}}
 
 /* ---------- transição entre páginas (View Transitions entre documentos) ---------- */
 @view-transition{navigation:auto}
@@ -362,6 +367,7 @@ footer p{margin:.15rem 0}
 
 /* index: botão da turma fixo no canto superior esquerdo, acompanha a rolagem */
 .team-fab{position:fixed;z-index:45;top:calc(var(--navh,56px) + 14px);left:16px}
+@media (max-width:1499px){.team-fab{position:relative;top:auto;left:auto;z-index:46;display:inline-block;margin:0}}
 @media (max-width:760px){
   .team-btn{font-size:.7rem;padding:.4rem .65rem}
   .team-pop{min-width:0;width:calc(100vw - 32px)}

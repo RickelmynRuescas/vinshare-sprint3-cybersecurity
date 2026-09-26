@@ -15,7 +15,7 @@ const FONTS_READY = document.fonts ? document.fonts.ready : Promise.resolve();
   const cur = pages.findIndex(p => p[0] === here || p[0].replace('.html', '') === here);
   const nav = document.createElement('header');
   nav.className = 'nav';
-  nav.innerHTML = `<div class="nav-in"><a class="brand" href="index.html">VIN Share <span>· SecOps</span></a><ul>${
+  nav.innerHTML = `<div class="nav-in"><a class="brand" href="index.html" aria-label="VIN Share · SecOps"><span class="b-long">VIN Share <span>· SecOps</span></span><span class="b-short" aria-hidden="true">V<i>S</i></span></a><ul>${
     pages.map((p, i) => i === cur
       ? `<li><a href="${p[0]}" class="active" aria-current="page">${p[1]}</a></li>`
       : `<li><a href="${p[0]}">${p[1]}</a></li>`).join('')}</ul></div>`;
@@ -31,6 +31,13 @@ const FONTS_READY = document.fonts ? document.fonts.ready : Promise.resolve();
   };
 
   // sublinhado do item ativo: na troca de página "caminha" do item anterior até o ativo, item a item
+  // degradê só nas bordas onde há mais itens escondidos (mobile)
+  const fades = () => {
+    const max = navUl.scrollWidth - navUl.clientWidth;
+    navUl.classList.toggle('fade-l', max > 1 && navUl.scrollLeft > 1);
+    navUl.classList.toggle('fade-r', max > 1 && navUl.scrollLeft < max - 1);
+  };
+  navUl.addEventListener('scroll', fades, { passive: true });
   const links = [...navUl.querySelectorAll('a')];
   const ind = document.createElement('span');
   ind.className = 'ind';
@@ -68,7 +75,8 @@ const FONTS_READY = document.fonts ? document.fonts.ready : Promise.resolve();
     };
     requestAnimationFrame(step);
   });
-  addEventListener('resize', () => { setNavH(); if (navAct && !walking) place(navAct); });
+  addEventListener('resize', () => { setNavH(); fades(); if (navAct && !walking) place(navAct); });
+  fades();
   // guarda o item atual para a próxima página (F5 cai no mesmo item: sem caminhada)
   addEventListener('pagehide', () => { try { if (cur >= 0) sessionStorage.setItem('vs-nav-from', cur); } catch (e) {} });
   addEventListener('pageshow', e => { if (e.persisted) try { sessionStorage.removeItem('vs-nav-from'); } catch (x) {} });
