@@ -185,6 +185,14 @@ const FONTS_READY = document.fonts ? document.fonts.ready : Promise.resolve();
   const upd = () => b.classList.toggle('on', scrollY > 700);
   addEventListener('scroll', upd, { passive: true });
   upd();
+  // some enquanto o rodapé ou a tela de encerramento estão visíveis; volta ao rolar para cima
+  const ends = [document.querySelector('footer'), document.getElementById('encerramento')].filter(Boolean);
+  const seen = new Set();
+  const io = new IntersectionObserver(es => {
+    es.forEach(e => e.isIntersecting ? seen.add(e.target) : seen.delete(e.target));
+    b.classList.toggle('away', seen.size > 0);
+  });
+  ends.forEach(el => io.observe(el));
 })();
 
 // Mermaid: renderiza depois das fontes carregarem (evita texto cortado nos nós).
