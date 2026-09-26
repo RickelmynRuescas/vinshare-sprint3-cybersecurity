@@ -166,6 +166,7 @@
     <tr><td>R14</td><td>Dependência vulnerável</td><td>Todos</td><td>A06</td><td>API8</td><td>M2</td><td>V14</td><td>2</td><td>2</td><td><span class="tag high">4</span></td><td>SCA (pip-audit/Dependabot) + Trivy (pesquisado, <a href="etapa1-devsecops.html#sca">E1</a>)</td></tr>
     <tr><td>R15</td><td>Debug / docs expostos em produção</td><td>API</td><td>A05</td><td>API8</td><td>M8</td><td>V14.3.2</td><td>2</td><td>1</td><td><span class="tag med">2</span></td><td>Config por ambiente + regra Semgrep <i>fastapi-debug</i></td></tr>
   </table></div>
+  <p class="muted"><b>Maior risco: R1 (BOLA)</b>, escore 9 antes das mitigações. Reflete a natureza multi-concessionária do VIN Share: 435 concessionárias compartilham a mesma API, e uma falha de escopo expõe clientes entre concorrentes da própria rede.</p>
 
   <h2 id="stride">Revisão STRIDE</h2>
   <p>Verificação cruzada da matriz pelo modelo <b>STRIDE</b>: cada categoria tem ao menos um controle implementado.</p>
@@ -194,22 +195,6 @@
     <div class="card"><h3>Direitos do titular (art. 18)</h3><p class="muted">Acesso, correção, portabilidade, eliminação e revogação de consentimento pelo app Ford ou pelo canal do DPO. As solicitações são registradas e atendidas em até 15 dias.</p></div>
     <div class="card"><h3>Retenção e eliminação</h3><p class="muted">Contato: enquanto houver relação com a Ford, mais 5 anos. Localização: 30 dias. Logs: 1 ano. Findo o prazo, os dados são eliminados ou anonimizados, com destruição da chave (crypto-shredding).</p></div>
     <div class="card"><h3>Incidentes (art. 48)</h3><p class="muted">Incidente com dado pessoal e risco relevante é comunicado à ANPD e aos titulares, conforme a fase de Recuperação do <a href="etapa3-logs-incidentes.html#picerl">PICERL</a>.</p></div>
-  </div>
-
-  <h2 id="riscos">Análise de riscos (heatmap)</h2>
-  <div class="split rev">
-    <div>
-      <p class="eyebrow">Antes das mitigações</p>
-  <div class="heat">
-    <div class="h"></div><div class="h">Impacto baixo (1)</div><div class="h">Impacto médio (2)</div><div class="h">Impacto alto (3)</div>
-    <div class="h">Prob. alta (3)</div><div class="h2"></div><div class="h3">R3 · R4</div><div class="h3">R1</div>
-    <div class="h">Prob. média (2)</div><div class="h1">R13 · R15</div><div class="h2">R8 · R9 · R11 · R12 · R14</div><div class="h3">R2 · R5 · R6</div>
-    <div class="h">Prob. baixa (1)</div><div class="h1"></div><div class="h1"></div><div class="h2">R7 · R10</div>
-  </div>
-    </div>
-    <div>
-      <p class="muted">O maior risco (R1, BOLA) reflete a natureza multi-concessionária do VIN Share: são 435 concessionárias compartilhando a mesma API, e uma falha de escopo expõe clientes entre concorrentes da própria rede.</p>
-    </div>
   </div>
 
   <h2 id="plano">Plano de mitigação</h2>

@@ -114,12 +114,52 @@ const FONTS_READY = document.fonts ? document.fonts.ready : Promise.resolve();
     // mobile (faixa horizontal): rola só a faixa, nunca a página
     if (ol.scrollWidth > ol.clientWidth) ol.scrollTo({ left: a.parentElement.offsetLeft - 16, behavior: REDUCED ? 'auto' : 'smooth' });
   };
-  const io = new IntersectionObserver(es => {
-    const vis = es.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-    if (vis.length) setActive(vis[0].target.id);
-  }, { rootMargin: '-80px 0px -65% 0px' });
-  heads.forEach(h => io.observe(h));
-  setActive(heads[0].id);
+  // Seção atual = a última cuja linha do título já passou do topo (navbar + faixa do índice no mobile,
+  // o mesmo scroll-margin das âncoras). No fim da página vale o último título visível.
+  const limit = () => (parseFloat(getComputedStyle(heads[0]).scrollMarginTop) || 80) + 4;
+  let pinned = null;                                   // destino de um clique/âncora, até a rolagem terminar
+  const compute = () => {
+    if (pinned) return;
+    const lim = limit();
+    let cur = heads[0];
+    for (const h of heads) { if (h.getBoundingClientRect().top <= lim) cur = h; else break; }
+    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 2)
+      for (const h of heads) if (h.getBoundingClientRect().top < innerHeight) cur = h;
+    setActive(cur.id);
+  };
+  let last = null;                                     // último destino de clique/âncora (para realinhar)
+  const realign = id => {
+    const t = document.getElementById(id);
+    const dy = t.getBoundingClientRect().top - (parseFloat(getComputedStyle(t).scrollMarginTop) || 0);
+    const atBottom = innerHeight + scrollY >= document.documentElement.scrollHeight - 2;
+    // conteúdo acima mudou de altura durante/depois do salto: corrige a deriva (não mexe se o usuário já rolou)
+    if (Math.abs(dy) > 4 && Math.abs(dy) < innerHeight && !(atBottom && dy > 0)) scrollBy({ top: dy, behavior: 'instant' });
+    setActive(id);
+  };
+  const pin = id => {
+    pinned = id;
+    last = { id, t: performance.now(), user: false };
+    setActive(id);
+    let done = false;
+    const release = () => { if (done) return; done = true; pinned = null; if (!last.user) realign(id); };
+    addEventListener('scrollend', release, { once: true });
+    setTimeout(release, 1200);                         // se não houver rolagem (já estava lá) ou sem scrollend
+  };
+  ['wheel', 'touchstart', 'keydown'].forEach(ev => addEventListener(ev, () => { if (last) last.user = true; }, { passive: true }));
+  document.addEventListener('vs:layout', () => { if (last && !last.user && performance.now() - last.t < 6000) realign(last.id); });
+  let ticking = false;
+  addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(() => { ticking = false; compute(); }); } }, { passive: true });
+  // clique em qualquer link interno desta página (índice, "Entrega esperada", links no texto): destino ativo na hora
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href^="#"]');
+    const id = a && decodeURIComponent(a.getAttribute('href').slice(1));
+    if (id && links.has(id)) pin(id);
+  });
+  // abrir a página com #âncora (ex.: vindo do checklist do index) ou trocar o hash
+  const fromHash = () => { const id = decodeURIComponent(location.hash.slice(1)); if (links.has(id)) pin(id); else compute(); };
+  addEventListener('hashchange', fromHash);
+  addEventListener('load', fromHash);
+  fromHash();
 })();
 
 // Botão "voltar ao topo"
@@ -150,7 +190,8 @@ function initMermaid() {
     },
     flowchart: { curve: 'basis', padding: 14, wrappingWidth: 260 },
   });
-  FONTS_READY.then(() => mermaid.run({ querySelector: '.mermaid' }));
+  FONTS_READY.then(() => mermaid.run({ querySelector: '.mermaid' }))
+    .finally(() => document.dispatchEvent(new Event('vs:layout')));
 }
 if (window.mermaid) initMermaid(); else document.addEventListener('DOMContentLoaded', initMermaid, { once: true });
 
@@ -185,21 +226,25 @@ function onVisible(el, fn) {
   io.observe(el);
 }
 
-// Terminais "digitados": <pre data-type> revela linha a linha
+// Terminais "digitados": <pre data-type> revela linha a linha. Todas as linhas já ocupam espaço
+// (ficam invisíveis até a vez delas), então o terminal não muda de altura e nada abaixo se desloca.
 document.querySelectorAll('pre[data-type]').forEach(pre => {
   if (REDUCED) return;   // sem animação: conteúdo aparece completo
-  const lines = pre.innerHTML.split('\n');
   const speed = +pre.dataset.type || 90;
   pre._full = pre.innerHTML;
-  pre.innerHTML = '';
-  pre.classList.add('cursor');
+  pre.innerHTML = pre._full.split('\n').map(l => `<span class="ln">${l}</span>`).join('\n');
+  const lines = [...pre.querySelectorAll(':scope > .ln')];
+  lines[0].classList.add('cur');
   onVisible(pre, () => {
     let i = 0;
     const tick = () => {
-      if (pre._done || i >= lines.length) { pre.classList.remove('cursor'); return; }
-      pre.innerHTML += (i ? '\n' : '') + lines[i++];
-      pre.scrollTop = pre.scrollHeight;
-      setTimeout(tick, lines[i - 1].startsWith('$') ? speed * 5 : speed);
+      if (pre._done || i >= lines.length) { lines.forEach(l => l.classList.remove('cur')); return; }
+      const ln = lines[i++];
+      lines.forEach(l => l.classList.remove('cur'));
+      ln.classList.add('on', 'cur');
+      const over = ln.getBoundingClientRect().bottom - pre.getBoundingClientRect().bottom + 14;
+      if (over > 0) pre.scrollTop += over;           // terminais com rolagem interna acompanham a linha
+      setTimeout(tick, ln.textContent.startsWith('$') ? speed * 5 : speed);
     };
     tick();
   });

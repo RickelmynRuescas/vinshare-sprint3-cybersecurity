@@ -72,27 +72,7 @@
   </section>
 
 
-  <h2 id="ssdlc">SDLC × SSDLC: shift-left</h2>
-  <p>No SDLC tradicional a segurança chega no fim (pentest pré-go-live). No <b>SSDLC</b> ela é empurrada para a esquerda (<i>shift-left</i>) e automatizada em cada fase.</p>
-<div class="grid g2 cmp">
-<div><h3 style="text-align:center">SDLC tradicional</h3>
-<pre class="mermaid">
-flowchart TD
-  A1[Requisitos] --> A2[Design] --> A3[Código] --> A4[Testes] --> A5[Deploy] --> A6[Pentest<br/>no final]:::late
-  classDef late stroke:#f85149,stroke-width:2px
-</pre></div>
-<div><h3 style="text-align:center">SSDLC (shift-left)</h3>
-<pre class="mermaid">
-flowchart TD
-  B1[Requisitos<br/>+ LGPD / ASVS] --> B2[Design<br/>+ threat modeling] --> B3[Código<br/>+ pre-commit Trufflehog<br/>+ Semgrep na IDE]:::sec --> B4[CI<br/>+ SAST / SCA / secrets]:::sec --> B5[Deploy<br/>+ scan de imagem]:::sec --> B6[Operação<br/>+ ELK / alertas]:::sec
-  classDef sec stroke:#3fb950,stroke-width:2px
-</pre></div>
-</div>
-  <div class="grid">
-    <div class="card"><h3>Custo de correção</h3><p class="muted">Um segredo barrado no pre-commit custa segundos. O mesmo segredo publicado no GitHub exige rotação da chave, auditoria de uso e, no caso da API do WhatsApp, pode resultar em envio de mensagens fraudulentas para os clientes Ford.</p></div>
-    <div class="card"><h3>Feedback rápido</h3><p class="muted">O desenvolvedor recebe o achado do Semgrep no próprio PR, com linha, regra e sugestão de correção, sem esperar um relatório de auditoria.</p></div>
-    <div class="card"><h3>Gate automático</h3><p class="muted">Achados <span class="tag crit">CRITICAL</span> e <span class="tag high">HIGH</span>, ou segredos verificados, bloqueiam o merge e o deploy. A política vira código.</p></div>
-  </div>
+  <p class="note"><b>Shift-left:</b> no SDLC tradicional a segurança chega só no fim, num pentest antes do go-live. No <b>SSDLC</b> ela vai para o início e é automatizada em cada fase: pre-commit, CI, deploy e operação.</p>
 
   <h2 id="cicd">Diagrama do pipeline CI/CD</h2>
   <p>Pontos de execução do <b>Trufflehog</b>, do <b>Semgrep</b> e do <b>IaC scan</b>. Tracejado: SCA e Container Security, pesquisados e posicionados, sem aplicação nesta sprint.</p>
@@ -142,8 +122,8 @@ flowchart TD
     <div>
       <p>Combina <b>regex</b> (padrões de AWS, Twilio, SendGrid, Meta/WhatsApp, chaves privadas) com <b>entropia</b>, e faz <b>validação ativa</b>: testa a credencial no provedor e marca <span class="tag crit">verified</span> ou <span class="tag">unverified</span>.</p>
       <p class="muted">Segredos críticos no VIN Share: tokens dos canais, <code>JWT_SECRET</code>, chave Fernet da PII e credenciais de infraestrutura.</p>
-      <div class="card"><h4>01 · Pre-commit hook (local)</h4><p class="muted">Roda antes do commit existir: o segredo nunca entra no histórico.</p></div>
-      <div class="card"><h4>02 · GitHub Actions (pipeline)</h4><p class="muted">Rede de segurança para quem não tem o hook ou usou <code>--no-verify</code>. Varre o histórico do PR e bloqueia o merge.</p></div>
+      <div class="card"><h4>Pre-commit hook (local)</h4><p class="muted">Roda antes do commit existir: o segredo nunca entra no histórico.</p></div>
+      <p class="muted">No CI, o Trufflehog roda no job <code>secret-scan</code> do workflow (<a href="#actions">ver abaixo</a>).</p>
     </div>
     <div>
   <div class="fn">.pre-commit-config.yaml</div>
@@ -440,18 +420,6 @@ Ran 1.187 rules on 214 files: <span class="r">6 findings (3 blocking)</span>.</p
           <span class="k">DEPLOY_TOKEN:</span> ${{ secrets.DEPLOY_TOKEN }}</pre>
     </div>
   </div>
-
-  <h3>Execução no GitHub Actions (simulado)</h3>
-  <div class="term"><div class="term-bar"><i></i><i></i><i></i>Actions · PR #87 feat(prediction): novo modelo de churn v3.2</div>
-<pre data-type="90">VIN Share — Security Pipeline  #214  ·  triggered by pull_request
-  <span class="g">✔</span> Trufflehog — secret scanning        <span class="muted">41s</span>
-  <span class="r">✖</span> Semgrep — SAST                       <span class="muted">1m12s</span>
-      Error: 1 blocking finding
-      prediction_hub/model_loader.py:18  vinshare-unsafe-model-load (ERROR)
-  <span class="muted">⊘</span> Build &amp; deploy (staging)             <span class="muted">skipped — needs [sast] failed</span>
-
-<span class="r">✖ Some checks were not successful</span> — Merging is blocked
-  Required status check "Semgrep — SAST" failed.</pre></div>
 
   <h2 id="sca">Pesquisa: SCA e Container Security</h2>
   <p>Semgrep e Trufflehog cobrem o código <b>próprio</b>; a maior parte do que roda em produção é de <b>terceiros</b> (libs e imagens). SCA e Container Security fecham essa lacuna (tracejado no diagrama).</p>

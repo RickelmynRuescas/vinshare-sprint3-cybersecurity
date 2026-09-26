@@ -303,16 +303,11 @@ app.add_middleware(CORSMiddleware,
     <span class="k">return</span> resp</pre>
 
   <h2 id="rbac">Controle de acesso por perfil (RBAC)</h2>
-  <p>Perfis da aula adaptados à rede Ford:</p>
-  <div class="grid">
-    <div class="card"><span class="tag low">consultor</span><h3 style="margin-top:.5rem">Consultor de Serviço <small>(Brigadista)</small></h3><p class="muted">Atua no balcão da concessionária. Vê clientes e veículos <b>somente da própria concessionária</b>, registra atendimentos e dispara lembretes individuais. Vê PII mascarada por padrão.</p></div>
-    <div class="card"><span class="tag med">gestor</span><h3 style="margin-top:.5rem">Gestor <small>(Gestor)</small></h3><p class="muted">Gerente de pós-venda da concessionária ou regional. Acessa dashboards de retenção, Health Scores agregados, cria campanhas por perfil de cliente (ex.: Motorista de Aplicativo, Cliente Premium de Baixa Quilometragem) e exporta relatórios <b>das concessionárias sob sua gestão</b>.</p></div>
-    <div class="card"><span class="tag crit">admin</span><h3 style="margin-top:.5rem">Administrador <small>(Administrador)</small></h3><p class="muted">Equipe Ford/VIN Share. Gerencia usuários e perfis, configura integrações e modelos de ML e acessa logs de auditoria. Ações críticas exigem <b>MFA</b> e geram log.</p></div>
-  </div>
+  <p>Perfis da aula adaptados à rede Ford (nome original entre parênteses):</p>
 
   <h3>Matriz de permissões</h3>
   <div class="tbl"><table>
-    <tr><th>Permissão</th><th>Consultor de Serviço</th><th>Gestor</th><th>Administrador</th></tr>
+    <tr><th>Permissão</th><th class="role">Consultor de Serviço (Brigadista)<small>balcão · só a própria concessionária</small></th><th class="role">Gestor (Gestor)<small>pós-venda · concessionárias sob sua gestão</small></th><th class="role">Administrador (Administrador)<small>equipe Ford · ações críticas com MFA</small></th></tr>
     <tr><td><code>customer:read</code> (PII mascarada)</td><td class="y">✔ própria conc.</td><td class="y">✔ conc. geridas</td><td class="y">✔ todas</td></tr>
     <tr><td><code>customer:read_pii</code> (PII completa)</td><td class="y">✔ no atendimento*</td><td class="n">✖</td><td class="y">✔ + MFA</td></tr>
     <tr><td><code>vehicle:health:read</code></td><td class="y">✔ própria conc.</td><td class="y">✔ conc. geridas</td><td class="y">✔ todas</td></tr>

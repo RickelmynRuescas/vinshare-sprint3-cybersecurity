@@ -85,15 +85,7 @@
   <div class="note"><b>Sobre IoT:</b> a telemetria de veículos conectados é a <b>fase 3</b> da evolução do projeto (Batch/Histórico → Comportamental Digital → Telemetria Conectada). Os eventos, métricas e alertas de IoT desta página foram desenhados antecipando essa fase.</div>
 
   <h2 id="elk">Stack de observabilidade: ELK</h2>
-  <div class="split">
-    <div>
-      <p>Stack ELK do projeto. Nenhum componente dela fica exposto à internet: app e TCUs falam só com os backends.</p>
-      <div class="card"><h4>Beats</h4><p class="muted">Agentes nos containers. Filebeat lê os logs JSON; Metricbeat coleta CPU, memória e latência.</p></div>
-      <div class="card"><h4>Logstash</h4><p class="muted">Ingestão e parsing: normaliza campos, GeoIP e <b>mascara PII residual</b>.</p></div>
-      <div class="card"><h4>Elasticsearch</h4><p class="muted">Indexa. Índices de segurança separados, ILM hot → warm → delete em 365 dias.</p></div>
-      <div class="card"><h4>Kibana</h4><p class="muted">Dashboards, regras de alerta e investigação de incidentes.</p></div>
-    </div>
-    <div>
+  <p>Nenhum componente da stack fica exposto à internet: app e TCUs falam só com os backends.</p>
 <pre class="mermaid">
 flowchart TD
   M[App Ford existente] -->|HTTPS + pinning| BFF[mobile-bff]
@@ -104,17 +96,15 @@ flowchart TD
     ING
     ML[Prediction Hub]
   end
-  A & BFF & ING -->|Filebeat| LS
-  ML -->|Metricbeat + Filebeat| LS
+  A & BFF & ING -->|Filebeat: agente nos containers| LS
+  ML -->|Metricbeat: CPU, memória, latência| LS
   LS[Logstash<br/>parse, GeoIP,<br/>mascara PII<br/>sem exposição externa]
-  LS --> ES[(Elasticsearch<br/>vinshare-security-*<br/>vinshare-app-*)]
-  ES --> KB[Kibana<br/>dashboards]
+  LS --> ES[(Elasticsearch<br/>índices security / app<br/>ILM: apaga em 365 dias)]
+  ES --> KB[Kibana<br/>dashboards e investigação]
   ES --> AL[Alerting / Watcher<br/>+ regras de detecção]
   AL --> N[Teams / e-mail / PagerDuty]
   AL --> IR[Time de resposta<br/>PICERL]
 </pre>
-    </div>
-  </div>
 
   <h2 id="logs">Logs estruturados</h2>
   <p>Eventos simulados chegando ao Logstash; os de segurança (<span class="r">HIGH</span>, <span class="f">NOTICE</span>) aparecem no meio do tráfego normal.</p>
@@ -265,32 +255,16 @@ flowchart LR
   R -.monitoramento contínuo.-> I
 </pre>
 
-  <div class="grid g2">
-    <div class="card"><h3>01 · Preparação</h3><ul>
-      <li>Stack ELK com as regras de alerta desta página</li>
-      <li>Playbooks por cenário: credential stuffing, device IoT comprometido, vazamento de segredo, modelo adulterado, vazamento de PII</li>
-      <li>Papéis: líder de incidente (Admin Ford), time técnico dos hubs, DPO (LGPD), comunicação com concessionárias</li>
-      <li>Ferramentas prontas: denylist JWT, revogação de certificado TCU, rollback de modelo, rotação de chaves</li>
-      <li>Simulados (tabletop) trimestrais</li></ul></div>
-    <div class="card"><h3>02 · Identificação</h3><ul>
-      <li>Origem: alerta ELK/IDS, report de concessionária ou achado de pipeline</li>
-      <li>Triagem: é falso positivo? Correlacionar pelo <code>trace_id</code>, IP e <code>device_id</code></li>
-      <li>Classificar a severidade (SEV1 a SEV4) e o escopo: quais hubs, concessionárias e clientes foram afetados</li>
-      <li>Abrir ticket e preservar evidências (snapshot dos índices)</li></ul></div>
-    <div class="card"><h3>03 · Contenção</h3><ul>
-      <li><b>Curto prazo:</b> bloquear IP no WAF, colocar o device em quarentena, invalidar tokens (denylist <code>jti</code>), desativar o usuário</li>
-      <li><b>Longo prazo:</b> reduzir rate limit, exigir MFA extra, isolar o hub afetado da rede</li>
-      <li>Preservar os logs antes de qualquer mudança</li></ul></div>
-    <div class="card"><h3>04 · Erradicação</h3><ul>
-      <li>Remover a causa raiz: corrigir o código (novo PR passando pelo Semgrep), rotacionar segredos, reemitir certificados</li>
-      <li>Varrer IoCs em todos os hubs e no histórico git (Trufflehog)</li>
-      <li>Criar ou ajustar a regra de detecção para o padrão observado</li></ul></div>
-    <div class="card" style="grid-column:1/-1"><h3>05 · Recuperação</h3><ul>
-      <li>Restaurar os serviços de forma gradual (canário)</li>
-      <li>Validar a integridade: hash dos modelos e consistência dos Health Scores</li>
-      <li>Monitoramento reforçado por 7 dias com thresholds mais baixos</li>
-      <li>Comunicar concessionárias e, se houver dados pessoais envolvidos, ANPD e titulares (LGPD art. 48)</li></ul></div>
-  </div>
+  <details class="acc phases">
+    <summary>Detalhe das fases<small>5 fases</small></summary>
+    <div class="grid">
+      <div class="card"><h4>01 · Preparação</h4><ul><li>Playbooks por cenário: device IoT comprometido, vazamento de segredo, de PII e modelo adulterado</li><li>Papéis definidos (líder Admin Ford, time dos hubs, DPO) e simulados trimestrais</li><li>Ferramentas prontas: denylist JWT, revogação de certificado TCU, rollback de modelo</li></ul></div>
+      <div class="card"><h4>02 · Identificação</h4><ul><li>Origem: alerta ELK/IDS, report de concessionária ou achado de pipeline</li><li>Triagem e correlação por <code>trace_id</code>, IP e <code>device_id</code>; severidade SEV1–SEV4 e escopo</li><li>Preservar evidências (snapshot dos índices)</li></ul></div>
+      <div class="card"><h4>03 · Contenção</h4><ul><li><b>Curto prazo:</b> bloquear IP no WAF, quarentena do device, denylist <code>jti</code></li><li><b>Longo prazo:</b> reduzir rate limit, exigir MFA extra, isolar o hub afetado</li></ul></div>
+      <div class="card"><h4>04 · Erradicação</h4><ul><li>Corrigir a causa raiz (PR passando pelo Semgrep), rotacionar segredos, reemitir certificados</li><li>Varrer IoCs nos hubs e no histórico git (Trufflehog) e ajustar a regra de detecção</li></ul></div>
+      <div class="card"><h4>05 · Recuperação</h4><ul><li>Restauração gradual (canário) e validação: hash dos modelos e Health Scores</li><li>Monitoramento reforçado por 7 dias</li><li>Comunicar concessionárias e, com dados pessoais, ANPD e titulares (LGPD art. 48)</li></ul></div>
+    </div>
+  </details>
 
   <h3>Incidente simulado: TCU clonado inundando o IoT ingest</h3>
   <p class="muted">Incidente fictício disparado pelo alerta VS-IOT-001 (o mesmo do dashboard).</p>

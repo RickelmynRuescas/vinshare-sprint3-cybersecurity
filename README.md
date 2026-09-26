@@ -29,12 +29,12 @@ Entrega de segurança do projeto **VIN Share / Ford Customer 360**: uma camada d
 
 | Etapa | Peso | Principais tópicos | Página |
 |---|---|---|---|
-| 1 · Pipeline DevSecOps & Análise de Código | 3,0 | SDLC × SSDLC (shift-left), diagrama CI/CD, Semgrep (regras e varreduras), Trufflehog (pre-commit + GitHub Actions), pesquisa de SCA e Container Security | [etapa1-devsecops.html](https://vinshare-sprint3-cybersecurity.vercel.app/etapa1-devsecops.html) |
-| 2 · Segurança em Código e Infraestrutura | 2,5 | Criptografia local (Fernet, Argon2id), hardening de API (rate limit, validação, JWT), RBAC (Consultor de Serviço, Gestor, Administrador), MQTT/TLS para IoT, IaC Security, commits | [etapa2-codigo-infra.html](https://vinshare-sprint3-cybersecurity.vercel.app/etapa2-codigo-infra.html) |
-| 3 · Logs, Alertas e Resposta a Incidentes | 2,0 | Plano de monitoramento, logs JSON estruturados, stack ELK, regras estilo Suricata, gatilhos de alerta (API, mobile, IoT, ML), SANS PICERL | [etapa3-logs-incidentes.html](https://vinshare-sprint3-cybersecurity.vercel.app/etapa3-logs-incidentes.html) |
-| 4 · Pesquisa de Vulnerabilidades (OWASP) | 2,5 | OWASP Top 10, API Top 10, Mobile Top 10, ASVS, matriz de mapeamento, STRIDE, LGPD, heatmap de riscos, plano de mitigação e de segurança contínua | [etapa4-owasp.html](https://vinshare-sprint3-cybersecurity.vercel.app/etapa4-owasp.html) |
+| 1 · Pipeline DevSecOps & Análise de Código | 3,0 | Nota sobre shift-left (SDLC × SSDLC), diagrama CI/CD com simulação interativa do pipeline, Trufflehog (pre-commit + job no GitHub Actions), Semgrep (regras e varreduras), workflow `security.yml` com IaC scan, pesquisa de SCA e Container Security | [etapa1-devsecops.html](https://vinshare-sprint3-cybersecurity.vercel.app/etapa1-devsecops.html) |
+| 2 · Segurança em Código e Infraestrutura | 2,5 | Criptografia local (Fernet, Argon2id), hardening de API (rate limit, validação, JWT), RBAC com matriz de permissões por perfil (Consultor de Serviço, Gestor, Administrador), MQTT/TLS para IoT, IaC Security, commits | [etapa2-codigo-infra.html](https://vinshare-sprint3-cybersecurity.vercel.app/etapa2-codigo-infra.html) |
+| 3 · Logs, Alertas e Resposta a Incidentes | 2,0 | Plano de monitoramento, stack ELK, logs JSON estruturados, dashboard e regras estilo Suricata, gatilhos de alerta (API, mobile, IoT, ML), SANS PICERL com incidente simulado | [etapa3-logs-incidentes.html](https://vinshare-sprint3-cybersecurity.vercel.app/etapa3-logs-incidentes.html) |
+| 4 · Pesquisa de Vulnerabilidades (OWASP) | 2,5 | OWASP Top 10, API Top 10, Mobile Top 10, ASVS, matriz de mapeamento com análise de riscos (probabilidade × impacto), STRIDE, LGPD, plano de mitigação e de segurança contínua | [etapa4-owasp.html](https://vinshare-sprint3-cybersecurity.vercel.app/etapa4-owasp.html) |
 
-O `index.html` traz a visão geral do projeto, a arquitetura com a superfície de ataque e o checklist de conformidade, que liga cada entregável à seção onde ele está.
+O `index.html` traz a visão geral do projeto, a arquitetura com a superfície de ataque, os integrantes (botão "Integrantes") e o checklist de conformidade agrupado por etapa, que liga cada entregável à seção onde ele está. Cada etapa abre com o bloco "Entrega esperada" e tem o índice "Nesta página".
 
 ## Estrutura
 
@@ -46,8 +46,9 @@ vinshare-sprint3-cybersecurity/
 ├── etapa3-logs-incidentes.html  # Etapa 3 — Logs, Alertas e Incidentes
 ├── etapa4-owasp.html            # Etapa 4 — OWASP, riscos e LGPD
 ├── assets/
-│   ├── css/style.css            # tema, layout e animações
-│   └── js/main.js               # nav, Mermaid, terminais, logs ao vivo, pipeline, timeline
+│   ├── css/style.css            # tema, layout, animações, transições entre páginas e impressão
+│   ├── js/main.js               # navbar, intro, índice, Mermaid, terminais, logs ao vivo, pipeline, timeline
+│   └── img/                     # foto da intro (WebP + JPG), favicon e imagem de compartilhamento
 ├── escopo-projeto.md            # escopo e decisões da entrega
 └── README.md
 ```

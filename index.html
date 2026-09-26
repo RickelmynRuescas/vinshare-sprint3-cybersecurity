@@ -128,36 +128,32 @@ flowchart LR
 
   <div class="note"><b>IoT / telemetria:</b> o projeto evolui em três fases: <b>Batch/Histórico → Comportamental Digital → Telemetria Conectada</b>. A telemetria de veículos conectados é a fase 3. Os controles de IoT deste site (mTLS por TCU, cota por device, validação física dos dados, alertas VS-IOT) foram desenhados antecipando essa fase, para que ela já nasça segura.</div>
 
-  <h2>Etapas da entrega</h2>
-  <div class="rows">
-    <a href="etapa1-devsecops.html"><span class="n">01</span><div><h3>Pipeline DevSecOps &amp; Análise de Código</h3><p class="muted">SSDLC, Semgrep, Trufflehog (pre-commit + Actions), SCA e Container Security.</p></div></a>
-    <a href="etapa2-codigo-infra.html"><span class="n">02</span><div><h3>Segurança em Código e Infraestrutura</h3><p class="muted">Criptografia, hardening de API, RBAC, MQTT/TLS para IoT e IaC.</p></div></a>
-    <a href="etapa3-logs-incidentes.html"><span class="n">03</span><div><h3>Logs, Alertas e Resposta a Incidentes</h3><p class="muted">Logs JSON, ELK, regras estilo Suricata e SANS PICERL.</p></div></a>
-    <a href="etapa4-owasp.html"><span class="n">04</span><div><h3>Pesquisa de Vulnerabilidades (OWASP)</h3><p class="muted">OWASP Top 10, API, Mobile e ASVS; matriz, STRIDE, LGPD e mitigação.</p></div></a>
-  </div>
-
   <h2 id="checklist">Checklist de conformidade da entrega</h2>
-  <div class="tbl"><table>
-    <tr><th>Etapa</th><th>Entregável esperado</th><th>Onde está</th><th>Status</th></tr>
-    <tr><td>1</td><td>Varreduras SAST com Semgrep e regras aplicadas</td><td><a href="etapa1-devsecops.html#semgrep">Etapa 1 · Semgrep</a></td><td class="y">✔</td></tr>
-    <tr><td>1</td><td>Secret scanning com Trufflehog</td><td><a href="etapa1-devsecops.html#trufflehog">Etapa 1 · Trufflehog</a></td><td class="y">✔</td></tr>
-    <tr><td>1</td><td>Diagrama CI/CD com pontos de execução</td><td><a href="etapa1-devsecops.html#cicd">Etapa 1 · CI/CD</a></td><td class="y">✔</td></tr>
-    <tr><td>1</td><td>Pesquisa SCA e Container Security</td><td><a href="etapa1-devsecops.html#sca">Etapa 1 · SCA/Containers</a></td><td class="y">✔</td></tr>
-    <tr><td>2</td><td>Criptografia local</td><td><a href="etapa2-codigo-infra.html#cripto">Etapa 2 · Criptografia</a></td><td class="y">✔</td></tr>
-    <tr><td>2</td><td>Hardening de API: rate limit, validação e JWT</td><td><a href="etapa2-codigo-infra.html#api">Etapa 2 · API</a></td><td class="y">✔</td></tr>
-    <tr><td>2</td><td>Controle de acesso por perfil (RBAC)</td><td><a href="etapa2-codigo-infra.html#rbac">Etapa 2 · RBAC</a></td><td class="y">✔</td></tr>
-    <tr><td>2</td><td>Commits e explicações técnicas</td><td><a href="etapa2-codigo-infra.html#commits">Etapa 2 · Commits</a></td><td class="y">✔</td></tr>
-    <tr><td>2</td><td>Segurança MQTT/TLS para IoT (fase 3)</td><td><a href="etapa2-codigo-infra.html#mqtt">Etapa 2 · MQTT</a></td><td class="y">✔</td></tr>
-    <tr><td>2</td><td>Infraestrutura como Código (IaC Security)</td><td><a href="etapa2-codigo-infra.html#infra">Etapa 2 · IaC</a></td><td class="y">✔</td></tr>
-    <tr><td>3</td><td>Exemplos de logs estruturados</td><td><a href="etapa3-logs-incidentes.html#logs">Etapa 3 · Logs</a></td><td class="y">✔</td></tr>
-    <tr><td>3</td><td>Regras e gatilhos de alertas (API, mobile, IoT, ML)</td><td><a href="etapa3-logs-incidentes.html#alertas">Etapa 3 · Alertas</a></td><td class="y">✔</td></tr>
-    <tr><td>3</td><td>Fluxo de resposta a incidentes (PICERL)</td><td><a href="etapa3-logs-incidentes.html#picerl">Etapa 3 · PICERL</a></td><td class="y">✔</td></tr>
-    <tr><td>4</td><td>Pesquisa OWASP Top 10, API, Mobile e ASVS</td><td><a href="etapa4-owasp.html#pesquisa">Etapa 4 · Pesquisa</a></td><td class="y">✔</td></tr>
-    <tr><td>4</td><td>Matriz de mapeamento</td><td><a href="etapa4-owasp.html#matriz">Etapa 4 · Matriz</a></td><td class="y">✔</td></tr>
-    <tr><td>4</td><td>Revisão STRIDE (modelagem de ameaças)</td><td><a href="etapa4-owasp.html#stride">Etapa 4 · STRIDE</a></td><td class="y">✔</td></tr>
-    <tr><td>4</td><td>Mapeamento LGPD (dados, base legal, controles)</td><td><a href="etapa4-owasp.html#lgpd">Etapa 4 · LGPD</a></td><td class="y">✔</td></tr>
-    <tr><td>4</td><td>Análise de riscos e plano de mitigação</td><td><a href="etapa4-owasp.html#plano">Etapa 4 · Plano</a></td><td class="y">✔</td></tr>
-    <tr><td>4</td><td>Plano de segurança contínua (SCA, testes, auditoria RBAC, backup)</td><td><a href="etapa4-owasp.html#continua">Etapa 4 · Segurança contínua</a></td><td class="y">✔</td></tr>
+  <div class="tbl"><table class="checklist">
+    <tr><th>Entregável esperado</th><th>Onde está</th><th>Status</th></tr>
+    <tr class="grp"><th colspan="3"><a href="etapa1-devsecops.html">Etapa 1 · Pipeline DevSecOps &amp; Análise de Código</a></th></tr>
+    <tr><td>Varreduras SAST com Semgrep e regras aplicadas</td><td><a href="etapa1-devsecops.html#semgrep">Semgrep</a></td><td class="y">✔</td></tr>
+    <tr><td>Secret scanning com Trufflehog</td><td><a href="etapa1-devsecops.html#trufflehog">Trufflehog</a></td><td class="y">✔</td></tr>
+    <tr><td>Diagrama CI/CD com pontos de execução</td><td><a href="etapa1-devsecops.html#cicd">CI/CD</a></td><td class="y">✔</td></tr>
+    <tr><td>Pesquisa SCA e Container Security</td><td><a href="etapa1-devsecops.html#sca">SCA/Containers</a></td><td class="y">✔</td></tr>
+    <tr class="grp"><th colspan="3"><a href="etapa2-codigo-infra.html">Etapa 2 · Segurança em Código e Infraestrutura</a></th></tr>
+    <tr><td>Criptografia local</td><td><a href="etapa2-codigo-infra.html#cripto">Criptografia</a></td><td class="y">✔</td></tr>
+    <tr><td>Hardening de API: rate limit, validação e JWT</td><td><a href="etapa2-codigo-infra.html#api">API</a></td><td class="y">✔</td></tr>
+    <tr><td>Controle de acesso por perfil (RBAC)</td><td><a href="etapa2-codigo-infra.html#rbac">RBAC</a></td><td class="y">✔</td></tr>
+    <tr><td>Commits e explicações técnicas</td><td><a href="etapa2-codigo-infra.html#commits">Commits</a></td><td class="y">✔</td></tr>
+    <tr><td>Segurança MQTT/TLS para IoT (fase 3)</td><td><a href="etapa2-codigo-infra.html#mqtt">MQTT</a></td><td class="y">✔</td></tr>
+    <tr><td>Infraestrutura como Código (IaC Security)</td><td><a href="etapa2-codigo-infra.html#infra">IaC</a></td><td class="y">✔</td></tr>
+    <tr class="grp"><th colspan="3"><a href="etapa3-logs-incidentes.html">Etapa 3 · Logs, Alertas e Resposta a Incidentes</a></th></tr>
+    <tr><td>Exemplos de logs estruturados</td><td><a href="etapa3-logs-incidentes.html#logs">Logs</a></td><td class="y">✔</td></tr>
+    <tr><td>Regras e gatilhos de alertas (API, mobile, IoT, ML)</td><td><a href="etapa3-logs-incidentes.html#alertas">Alertas</a></td><td class="y">✔</td></tr>
+    <tr><td>Fluxo de resposta a incidentes (PICERL)</td><td><a href="etapa3-logs-incidentes.html#picerl">PICERL</a></td><td class="y">✔</td></tr>
+    <tr class="grp"><th colspan="3"><a href="etapa4-owasp.html">Etapa 4 · Pesquisa de Vulnerabilidades (OWASP)</a></th></tr>
+    <tr><td>Pesquisa OWASP Top 10, API, Mobile e ASVS</td><td><a href="etapa4-owasp.html#pesquisa">Pesquisa</a></td><td class="y">✔</td></tr>
+    <tr><td>Matriz de mapeamento</td><td><a href="etapa4-owasp.html#matriz">Matriz</a></td><td class="y">✔</td></tr>
+    <tr><td>Revisão STRIDE (modelagem de ameaças)</td><td><a href="etapa4-owasp.html#stride">STRIDE</a></td><td class="y">✔</td></tr>
+    <tr><td>Mapeamento LGPD (dados, base legal, controles)</td><td><a href="etapa4-owasp.html#lgpd">LGPD</a></td><td class="y">✔</td></tr>
+    <tr><td>Análise de riscos e plano de mitigação</td><td><a href="etapa4-owasp.html#plano">Plano</a></td><td class="y">✔</td></tr>
+    <tr><td>Plano de segurança contínua (SCA, testes, auditoria RBAC, backup)</td><td><a href="etapa4-owasp.html#continua">Segurança contínua</a></td><td class="y">✔</td></tr>
   </table></div>
 </main>
 <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
