@@ -373,6 +373,8 @@ MFA_REQUIRED = {<span class="s">"model:deploy"</span>, <span class="s">"user:man
     <span class="c"># consultor: PII completa só com o cliente em atendimento (OS aberta)</span>
     <span class="k">if</span> user.role == Role.CONSULTOR <span class="k">and not</span> service_orders.has_open(c.id, c.dealer_id):
         <span class="k">return</span> CustomerOut.masked(c)
+    <span class="k">if</span> user.role == Role.ADMIN <span class="k">and not</span> user.mfa_verified:   <span class="c"># admin: PII completa só com MFA</span>
+        <span class="k">raise</span> HTTPException(403, <span class="s">"MFA obrigatório"</span>)
     audit.info(<span class="s">"pii.viewed"</span>, user=user, customer_id=c.id)
     <span class="k">return</span> CustomerOut.full(c)</pre>
     </div>

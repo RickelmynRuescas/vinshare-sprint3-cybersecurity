@@ -68,7 +68,7 @@
     <tr><th>Componente</th><th>Eventos registrados</th><th>Métricas</th><th>Coletor</th></tr>
     <tr><td><b>API Gateway / Hubs</b></td><td>login sucesso/falha, refresh e revogação de token, 401/403/429, acesso negado por escopo, visualização de PII, alterações críticas (usuário, perfil, config, rate limit)</td><td>req/s, latência p95, taxa de 4xx/5xx, 429 por IP</td><td>Filebeat (JSON stdout)</td></tr>
     <tr><td><b>App Ford (existente)</b></td><td>início de sessão, falha de pinning, root/jailbreak detectado, versão desatualizada, crash</td><td>sessões ativas, % de falha de pinning, versões em uso</td><td>SDK → <code>mobile-bff</code> (<code>/v1/mobile/events</code>) → Filebeat</td></tr>
-    <tr><td><b>IoT / TCU</b></td><td>conexão/desconexão, certificado inválido, payload rejeitado pela validação, device desconhecido</td><td>msgs/min por device, % de payload inválido, devices ativos</td><td><code>iot-ingestor</code> (MQTT/mTLS) → Filebeat</td></tr>
+    <tr><td><b>IoT / TCU</b></td><td>conexão/desconexão, certificado inválido (<code>iot.cert.invalid</code>), payload rejeitado pela validação, device desconhecido</td><td>msgs/min por device, % de payload inválido, devices ativos</td><td><code>iot-ingestor</code> (MQTT/mTLS) → Filebeat</td></tr>
     <tr><td><b>ML / Prediction Hub</b></td><td>deploy de modelo (quem/hash), predição, drift detectado, carga de modelo fora da allowlist</td><td>latência, PSI de drift, distribuição do Health Score, volume de consultas por usuário (extração de modelo)</td><td>Metricbeat + logs JSON</td></tr>
     <tr><td><b>Engagement Hub</b></td><td>campanha criada/disparada, mensagem enviada/falha, opt-out</td><td>mensagens/h por canal, taxa de falha, disparos fora do horário</td><td>Filebeat</td></tr>
   </table></div>
@@ -212,9 +212,9 @@ flowchart TD
   threshold:type both, track by_src, count 30, seconds 60; \
   classtype:denial-of-service; <span class="k">sid:</span>9200001; rev:4;)
 
-<span class="r">alert</span> tls any any -&gt; $VINSHARE_IOT 8883 (<span class="k">msg:</span><span class="s">"VINSHARE IoT certificado de cliente nao emitido pela CA Ford"</span>; \
-  tls.cert_issuer; content:!<span class="s">"CN=Ford VIN Share Device CA"</span>; \
-  classtype:policy-violation; <span class="k">sid:</span>9200002; rev:1;)
+<span class="c"># Certificado de outra CA é recusado pelo próprio broker (mTLS com require_certificate</span>
+<span class="c"># + cafile + CRL, Etapa 2); a tentativa gera o evento iot.cert.invalid no iot-ingestor,</span>
+<span class="c"># monitorado no Kibana.</span>
 
 <span class="c"># ---------- Mobile ----------</span>
 <span class="r">alert</span> http any any -&gt; $VINSHARE_API 8000 (<span class="k">msg:</span><span class="s">"VINSHARE Mobile app Ford com versao vulneravel (&lt; 2.3.0)"</span>; \
