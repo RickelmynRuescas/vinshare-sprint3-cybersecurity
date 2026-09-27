@@ -205,19 +205,21 @@ flowchart TD
   classtype:web-application-attack; <span class="k">sid:</span>9100004; rev:1;)
 
 <span class="c"># ---------- IoT ----------</span>
-<span class="r">alert</span> http $TCU_NET any -&gt; $VINSHARE_IOT 443 (<span class="k">msg:</span><span class="s">"VINSHARE IoT pico anomalo de telemetria por device"</span>; \
-  http.uri; content:<span class="s">"/v1/iot/telemetry"</span>; \
-  threshold:type both, track by_src, count 300, seconds 60; \
-  classtype:denial-of-service; <span class="k">sid:</span>9200001; rev:3;)
+<span class="c"># MQTT na 8883 vai cifrado (mTLS até o broker): o IDS mede volume de conexões;</span>
+<span class="c"># o limite de mensagens por device fica na VS-IOT-001 (logs do iot-ingestor)</span>
+<span class="r">alert</span> tcp $TCU_NET any -&gt; $VINSHARE_IOT 8883 (<span class="k">msg:</span><span class="s">"VINSHARE IoT excesso de conexoes MQTT/TLS por origem"</span>; \
+  flow:to_server; flags:S; \
+  threshold:type both, track by_src, count 30, seconds 60; \
+  classtype:denial-of-service; <span class="k">sid:</span>9200001; rev:4;)
 
-<span class="r">alert</span> tls any any -&gt; $VINSHARE_IOT 443 (<span class="k">msg:</span><span class="s">"VINSHARE IoT certificado de cliente nao emitido pela CA Ford"</span>; \
+<span class="r">alert</span> tls any any -&gt; $VINSHARE_IOT 8883 (<span class="k">msg:</span><span class="s">"VINSHARE IoT certificado de cliente nao emitido pela CA Ford"</span>; \
   tls.cert_issuer; content:!<span class="s">"CN=Ford VIN Share Device CA"</span>; \
   classtype:policy-violation; <span class="k">sid:</span>9200002; rev:1;)
 
 <span class="c"># ---------- Mobile ----------</span>
-<span class="r">alert</span> http any any -&gt; $VINSHARE_API 8000 (<span class="k">msg:</span><span class="s">"VINSHARE Mobile versao do app vulneravel (&lt; 2.3.0)"</span>; \
-  http.user_agent; pcre:<span class="s">"/VINShareApp\/(1\.|2\.[0-2]\.)/"</span>; \
-  classtype:policy-violation; <span class="k">sid:</span>9300001; rev:1;)</pre>
+<span class="r">alert</span> http any any -&gt; $VINSHARE_API 8000 (<span class="k">msg:</span><span class="s">"VINSHARE Mobile app Ford com versao vulneravel (&lt; 2.3.0)"</span>; \
+  http.user_agent; pcre:<span class="s">"/FordApp\/(1\.|2\.[0-2]\.)/"</span>; \
+  classtype:policy-violation; <span class="k">sid:</span>9300001; rev:2;)</pre>
 
   <h3>Gatilhos de alerta (Kibana Alerting)</h3>
   <div class="tbl"><table>

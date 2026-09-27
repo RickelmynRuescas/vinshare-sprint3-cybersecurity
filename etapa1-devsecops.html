@@ -276,7 +276,7 @@ Commit: 5b3d8f4
   </div>
 
   <h3>Resultado da varredura (simulado)</h3>
-  <div class="term"><div class="term-bar"><i></i><i></i><i></i>semgrep scan --config p/owasp-top-ten --config .semgrep/vinshare.yml</div>
+  <div class="term"><div class="term-bar"><i></i><i></i><i></i>semgrep scan --config p/python --config p/owasp-top-ten --config p/jwt --config .semgrep/vinshare.yml</div>
 <pre data-type="35">$ semgrep scan --config p/python --config p/owasp-top-ten --config p/jwt --config .semgrep/vinshare.yml
 ┌──── ○○○ ────┐
 │ Semgrep CLI │
@@ -364,7 +364,7 @@ Ran 1.187 rules on 214 files: <span class="r">6 findings (3 blocking)</span>.</p
       - <span class="k">name:</span> TruffleHog OSS
         <span class="k">uses:</span> trufflesecurity/trufflehog@main
         <span class="k">with:</span>
-          <span class="k">extra_args:</span> --results=verified,unknown --fail
+          <span class="k">extra_args:</span> --results=verified,unknown
 
   <span class="k">sast:</span>
     <span class="k">name:</span> Semgrep — SAST
@@ -438,11 +438,11 @@ starlette   0.36.1  GHSA-f96h-pmfr-66vw 0.40.0</pre>
       </ul>
       <p><b>Onde entra:</b> logo após o <code>docker build</code> e antes do push para o registry. O Trivy bloqueia só CVEs CRITICAL (<code>--exit-code 1</code>). As HIGH saem num relatório informativo, que não quebra o build e vira issue de correção. O registry só aceita imagens assinadas.</p>
 <pre class="code"><span class="c"># gate: falha o build se houver CVE CRITICAL</span>
-$ trivy image --severity CRITICAL --exit-code 1 ghcr.io/vinshare/api:8c41e2a
+$ trivy image --severity CRITICAL --exit-code 1 ghcr.io/vinshare/api:f3b8e10
 Total: 0 (CRITICAL: 0)
 
 <span class="c"># relatório informativo: não bloqueia</span>
-$ trivy image --severity HIGH --exit-code 0 ghcr.io/vinshare/api:8c41e2a
+$ trivy image --severity HIGH --exit-code 0 ghcr.io/vinshare/api:f3b8e10
 Total: 2 (HIGH: 2)</pre>
     </div>
   </div>

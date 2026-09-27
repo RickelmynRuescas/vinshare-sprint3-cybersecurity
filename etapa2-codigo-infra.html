@@ -151,8 +151,9 @@ add_header Strict-Transport-Security
       <p>Sem limite, <code>/auth/login</code> aceitava brute force e <code>/v1/vehicles/{vin}/health</code> permitia enumerar VINs.</p>
       <ul>
         <li><code>slowapi</code> com Redis compartilhado entre réplicas.</li>
-        <li>Chave por usuário, por IP ou por <code>device_id</code> (IoT).</li>
+        <li>Chave por usuário, por IP ou por <code>device_id</code> (IoT), tirado do CN do certificado mTLS e nunca de cabeçalho do cliente.</li>
         <li>Login: 5/min e 20/h. Telemetria: 60/min por TCU.</li>
+        <li><code>/v1/iot/telemetry</code> é interno: só o <code>iot-ingestor</code> chama, repassando à API as mensagens MQTT dos TCUs.</li>
       </ul>
     </div>
     <div>
@@ -161,9 +162,13 @@ add_header Strict-Transport-Security
 <span class="k">from</span> slowapi.util <span class="k">import</span> get_remote_address
 
 <span class="k">def</span> <span class="f">key_func</span>(request: Request) -> str:
-    <span class="c"># usuário autenticado -> limita por usuário; senão por IP; IoT por device</span>
-    <span class="k">if</span> dev := request.headers.get(<span class="s">"X-Device-Id"</span>):
+    <span class="c"># cabeçalhos enviados pelo cliente (X-Device-Id etc.) NÃO são confiáveis:</span>
+    <span class="c"># basta trocar o valor a cada requisição para escapar do limite.</span>
+    <span class="c"># IoT: device_id = CN do certificado mTLS, validado no broker/gateway e</span>
+    <span class="c"># gravado em request.state pelo middleware de identidade.</span>
+    <span class="k">if</span> dev := getattr(request.state, <span class="s">"device_id"</span>, <span class="k">None</span>):
         <span class="k">return</span> <span class="s">f"dev:</span>{dev}<span class="s">"</span>
+    <span class="c"># usuário autenticado -> limita por usuário; senão por IP da conexão</span>
     <span class="k">return</span> getattr(request.state, <span class="s">"user_id"</span>, <span class="k">None</span>) <span class="k">or</span> get_remote_address(request)
 
 limiter = Limiter(key_func=key_func, storage_uri=settings.redis_url,
@@ -173,8 +178,8 @@ limiter = Limiter(key_func=key_func, storage_uri=settings.redis_url,
 <span class="f">@limiter.limit</span>(<span class="s">"5/minute;20/hour"</span>)           <span class="c"># anti brute force</span>
 <span class="k">async def</span> <span class="f">login</span>(request: Request, body: LoginIn): ...
 
-<span class="f">@router.post</span>(<span class="s">"/v1/iot/telemetry"</span>)
-<span class="f">@limiter.limit</span>(<span class="s">"60/minute"</span>)                   <span class="c"># 1 msg/s por TCU</span>
+<span class="f">@router.post</span>(<span class="s">"/v1/iot/telemetry"</span>)              <span class="c"># interno: chamado só pelo iot-ingestor</span>
+<span class="f">@limiter.limit</span>(<span class="s">"60/minute"</span>)                   <span class="c"># 1 msg/s por TCU (chave = device_id do cert)</span>
 <span class="k">async def</span> <span class="f">ingest</span>(request: Request, batch: TelemetryBatch): ...</pre>
     </div>
   </div>
@@ -363,7 +368,13 @@ MFA_REQUIRED = {<span class="s">"model:deploy"</span>, <span class="s">"user:man
 <span class="k">def</span> <span class="f">get_customer</span>(customer_id: int, user: User = Depends(require(<span class="s">"customer:read"</span>))):
     c = repo.get(customer_id) <span class="k">or</span> abort(404)
     enforce_dealer_scope(user, c.dealer_id)
-    <span class="k">return</span> CustomerOut.masked(c) <span class="k">if</span> <span class="s">"customer:read_pii"</span> <span class="k">not in</span> PERMISSIONS[user.role] <span class="k">else</span> CustomerOut.full(c)</pre>
+    <span class="k">if</span> <span class="s">"customer:read_pii"</span> <span class="k">not in</span> PERMISSIONS[user.role]:
+        <span class="k">return</span> CustomerOut.masked(c)
+    <span class="c"># consultor: PII completa só com o cliente em atendimento (OS aberta)</span>
+    <span class="k">if</span> user.role == Role.CONSULTOR <span class="k">and not</span> service_orders.has_open(c.id, c.dealer_id):
+        <span class="k">return</span> CustomerOut.masked(c)
+    audit.info(<span class="s">"pii.viewed"</span>, user=user, customer_id=c.id)
+    <span class="k">return</span> CustomerOut.full(c)</pre>
     </div>
   </div>
 
@@ -481,7 +492,7 @@ $ mosquitto_pub ... -t vinshare/telemetry/TCU-00A1C3 -f ponto.json
 
   <span class="k">api:</span>
     &lt;&lt;: *hardening
-    <span class="k">image:</span> ghcr.io/vinshare/api:8c41e2a
+    <span class="k">image:</span> ghcr.io/vinshare/api:f3b8e10
     <span class="k">expose:</span> [<span class="s">"8000"</span>]                   <span class="c"># sem ports: só o gateway alcança</span>
     <span class="k">networks:</span> [backend]
     <span class="k">volumes:</span> [sqlite_data:/data]         <span class="c"># única área gravável</span>
@@ -501,7 +512,7 @@ $ mosquitto_pub ... -t vinshare/telemetry/TCU-00A1C3 -f ponto.json
 
   <span class="k">iot-ingestor:</span>
     &lt;&lt;: *hardening
-    <span class="k">image:</span> ghcr.io/vinshare/iot-ingestor:8c41e2a
+    <span class="k">image:</span> ghcr.io/vinshare/iot-ingestor:f3b8e10
     <span class="k">networks:</span> [iot, backend]           <span class="c"># envia à api; não acessa o SQLite</span>
 
   <span class="k">redis:</span>                              <span class="c"># backend do rate limit (slowapi)</span>
