@@ -182,25 +182,25 @@ flowchart TD
   </div>
 
   <h3>Regras de detecção (estilo Suricata)</h3>
-  <p>Formato Suricata/IDS (<b>ação · protocolo · origem → destino · (msg, conteúdo, limiar, sid)</b>) adaptado aos endpoints do VIN Share. As mesmas condições rodam no Kibana Alerting sobre os logs.</p>
+  <p>Formato Suricata/IDS (<b>ação · protocolo · origem → destino · (msg, conteúdo, limiar, sid)</b>) adaptado aos endpoints do VIN Share. As mesmas condições rodam no Kibana Alerting sobre os logs. O IDS inspeciona o tráfego da API <b>depois da terminação TLS no gateway</b>, na rede interna (porta 8000): na 443 o tráfego ainda está cifrado e o conteúdo HTTP não seria visível.</p>
   <div class="fn">rules/vinshare.rules</div>
 <pre class="code"><span class="c"># ---------- API ----------</span>
-<span class="r">alert</span> http any any -&gt; $VINSHARE_API 443 (<span class="k">msg:</span><span class="s">"VINSHARE API brute force em /auth/login"</span>; \
+<span class="r">alert</span> http any any -&gt; $VINSHARE_API 8000 (<span class="k">msg:</span><span class="s">"VINSHARE API brute force em /auth/login"</span>; \
   flow:established,to_server; http.method; content:<span class="s">"POST"</span>; http.uri; content:<span class="s">"/auth/login"</span>; \
   http.stat_code; content:<span class="s">"401"</span>; \
   threshold:type both, track by_src, count 10, seconds 60; \
   classtype:attempted-user; <span class="k">sid:</span>9100001; rev:2;)
 
-<span class="r">alert</span> http any any -&gt; $VINSHARE_API 443 (<span class="k">msg:</span><span class="s">"VINSHARE API JWT com alg none"</span>; \
+<span class="r">alert</span> http any any -&gt; $VINSHARE_API 8000 (<span class="k">msg:</span><span class="s">"VINSHARE API JWT com alg none"</span>; \
   flow:established,to_server; http.header; content:<span class="s">"Authorization|3a 20|Bearer eyJhbGciOiJub25l"</span>; \
   classtype:attempted-admin; <span class="k">sid:</span>9100002; rev:1;)
 
-<span class="r">alert</span> http any any -&gt; $VINSHARE_API 443 (<span class="k">msg:</span><span class="s">"VINSHARE API enumeracao de VIN (scraping de Health Score)"</span>; \
+<span class="r">alert</span> http any any -&gt; $VINSHARE_API 8000 (<span class="k">msg:</span><span class="s">"VINSHARE API enumeracao de VIN (scraping de Health Score)"</span>; \
   http.uri; content:<span class="s">"/v1/vehicles/"</span>; content:<span class="s">"/health"</span>; distance:17; \
   threshold:type threshold, track by_src, count 200, seconds 300; \
   classtype:web-application-activity; <span class="k">sid:</span>9100003; rev:1;)
 
-<span class="r">drop</span>  http any any -&gt; $VINSHARE_API 443 (<span class="k">msg:</span><span class="s">"VINSHARE API SQLi em parametro vin"</span>; \
+<span class="r">drop</span>  http any any -&gt; $VINSHARE_API 8000 (<span class="k">msg:</span><span class="s">"VINSHARE API SQLi em parametro vin"</span>; \
   http.uri; content:<span class="s">"vin="</span>; pcre:<span class="s">"/vin=[^&amp;]*('|%27)(\s|%20)*(or|union|--)/Ui"</span>; \
   classtype:web-application-attack; <span class="k">sid:</span>9100004; rev:1;)
 
@@ -215,7 +215,7 @@ flowchart TD
   classtype:policy-violation; <span class="k">sid:</span>9200002; rev:1;)
 
 <span class="c"># ---------- Mobile ----------</span>
-<span class="r">alert</span> http any any -&gt; $VINSHARE_API 443 (<span class="k">msg:</span><span class="s">"VINSHARE Mobile versao do app vulneravel (&lt; 2.3.0)"</span>; \
+<span class="r">alert</span> http any any -&gt; $VINSHARE_API 8000 (<span class="k">msg:</span><span class="s">"VINSHARE Mobile versao do app vulneravel (&lt; 2.3.0)"</span>; \
   http.user_agent; pcre:<span class="s">"/VINShareApp\/(1\.|2\.[0-2]\.)/"</span>; \
   classtype:policy-violation; <span class="k">sid:</span>9300001; rev:1;)</pre>
 
@@ -244,7 +244,7 @@ flowchart LR
   I --> C[3. Contenção<br/>curto prazo: isolar<br/>longo prazo: paliativos]
   C --> E[4. Erradicação<br/>remover causa raiz,<br/>corrigir e varrer]
   E --> R[5. Recuperação<br/>restaurar, validar,<br/>monitorar reforçado]
-  R -.monitoramento contínuo.-> I
+  R -.->|monitoramento<br/>contínuo| I
 </pre>
 
   <details class="acc phases">
